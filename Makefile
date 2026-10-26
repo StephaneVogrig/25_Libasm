@@ -6,36 +6,13 @@
 #    By: svogrig < svogrig@studebt.42.fr>           +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2026/10/24 11:46:07 by svogrig           #+#    #+#              #
-#    Updated: 2026/10/26 18:59:13 by svogrig          ###   ########.fr        #
+#    Updated: 2026/10/26 20:35:28 by svogrig          ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
-MAKEFLAGS 		+= --no-print-directory
-
-BLINK_GREEN		:=	\033[5;32m
-BGREEN			:=	\033[1;32m
-BHYEL			:= 	\033[1;93m
-BOLD			:=	\033[1m
+GREEN			:=	\033[32m
+BOLD_GREEN		:=	\033[1;32m
 NC				:=	\033[0m
-
-# $(1) = titre de la bannière
-define banner
-	@banner_width=$$(printf '%s' "$(1)" | wc -m); \
-	banner_tiret=$$(printf '━%.0s' $$(seq 1 $$banner_width)); \
-	printf "\n"; \
-	printf "\t\t$(BHYEL)┍━━%s━»•» 🌸 «•«━┑$(NC)\n" "$$banner_tiret"; \
-	printf "\t\t$(BHYEL)  %s COMPILATION$(NC)\n" "$(1)"; \
-	printf "\t\t$(BHYEL)┕━»•» 🌸 «•«━%s━━┙$(NC)\n" "$$banner_tiret"; \
-	printf "\n"
-endef
-
-# $(1) = cible à construire
-define build
-	$(call banner,$(1))
-	@$(MAKE) -j $(1)
-	@printf "\n"
-	@printf "\t$(BGREEN)$(1) : COMPILATION FINISHED !$(NC)\n"
-endef
 
 LIB_NAME 		:= libasm.a
 TEST_NAME		:= test_libasm
@@ -43,15 +20,13 @@ TEST_NAME		:= test_libasm
 # includes --------------------------------------------------------------------#
 
 DIR_INC				:=	include
-
-I_FLAG				:=	$(addprefix -I,$(DIR_INC)) -MMD -MP
+CPPFLAGS 			:=	$(addprefix -I,$(DIR_INC))
+DEP_FLAGS			:= -MMD -MP
 
 # sources ---------------------------------------------------------------------#
 
 DIR_SRC			:=	src
-
 SRC_ASM			:= ft_strlen.s
-
 SRC_C			:= main.c
 
 # objects ---------------------------------------------------------------------#
@@ -66,37 +41,34 @@ NASM			:= nasm
 NASM_FLAGS 		:= -f elf64
 
 AR				:=	ar
-ARFLAGS			:=	-r -c -s
+ARFLAGS			:=	rcs
 
 CC				:=	cc
-CC_FLAGS		:=	-Wall -Wextra -Werror
-
--include $(OBJ_C:.o=.d)
+CFLAGS			:=	-Wall -Wextra -Werror
 
 #------------------------------------------------------------------------------#
 # rules                                                                        #
 #------------------------------------------------------------------------------#
 
-all: test
+all: lib
 
 clean:
-	@rm -rf $(OBJ_DIR) && printf "Cleaning : $(OBJ_DIR)\n"
+	@rm -rf $(OBJ_DIR) && printf "Cleaned : $(OBJ_DIR)\n"
 
 fclean: clean
-	@rm -f $(LIB_NAME) && printf "Cleaning : $(LIB_NAME)\n"
-	@rm -f $(TEST_NAME) && printf "Cleaning : $(TEST_NAME)\n"
+	@rm -f $(LIB_NAME) && printf "Cleaned : $(LIB_NAME)\n"
+	@rm -f $(TEST_NAME) && printf "Cleaned : $(TEST_NAME)\n"
 
 re: fclean all
 
-libasm: $(LIB_NAME)
-# 	@if ! $(MAKE) -q $(LIB_NAME); then \
-# 		$(call build,$(LIB_NAME)) \
-# 	fi
+test: $(TEST_NAME)
 
-test: libasm $(TEST_NAME)
-# 	@if ! $(MAKE) -q $(TEST_NAME); then \
-# 		$(call build,$(TEST_NAME)) \
-# 	fi
+lib: $(LIB_NAME)
+
+run: test
+	@./$(TEST_NAME)
+
+-include $(OBJ_C:.o=.d)
 
 #------------------------------------------------------------------------------#
 # compilation                                                                  #
@@ -104,23 +76,26 @@ test: libasm $(TEST_NAME)
 
 $(OBJ_DIR)/%.o: $(DIR_SRC)/%.s
 	@mkdir -p $(@D)
-	@printf "Compiling : %s\n" $@
+	@printf "Compiling : %s ... " $@
 	@$(NASM) $(NASM_FLAGS) $< -o $@
+	@printf "$(GREEN)done$(NC)\n"
 
 $(OBJ_DIR)/%.o: $(DIR_SRC)/%.c
 	@mkdir -p $(@D)
-	@printf "Compiling : %s\n" $@
-	@$(CC) $(CC_FLAGS) $(I_FLAG) -c $< -o $@
+	@printf "Compiling : %s ... " $@
+	@$(CC) $(CFLAGS) $(CPPFLAGS) $(DEP_FLAGS) -c $< -o $@
+	@printf "$(GREEN)done$(NC)\n"
 
 #------------------------------------------------------------------------------#
 # linkage                                                                      #
 #------------------------------------------------------------------------------#
 
 $(LIB_NAME): $(OBJ_ASM)
-	@$(AR) $(ARFLAGS) $(LIB_NAME) $(OBJ_ASM) && printf "Created : %s\n" $@
+	@$(AR) $(ARFLAGS) $(LIB_NAME) $(OBJ_ASM)
+	@printf "$(BOLD_GREEN)Created   : %s$(NC)\n" $@
 
-$(TEST_NAME): $(OBJ_C) $(LIB_NAME)
-	@$(CC) $(CC_FLAGS) $^ -o $@ && printf "Created : %s\n" $@
+$(TEST_NAME): $(LIB_NAME) $(OBJ_C)
+	@$(CC) $(CFLAGS) $(OBJ_C) $(LIB_NAME) -o $@ && printf "$(BOLD_GREEN)Created   : $@$(NC)\n"
 
 #------------------------------------------------------------------------------#
 # specifications                                                               #
@@ -130,5 +105,6 @@ $(TEST_NAME): $(OBJ_C) $(LIB_NAME)
 		clean \
 		fclean \
 		re \
-		libasm \
-		test
+		lib \
+		test \
+		run
