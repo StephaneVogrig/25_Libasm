@@ -6,7 +6,7 @@
 #    By: svogrig < svogrig@studebt.42.fr>           +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2026/10/24 11:46:07 by svogrig           #+#    #+#              #
-#    Updated: 2026/10/26 16:25:30 by svogrig          ###   ########.fr        #
+#    Updated: 2026/10/26 18:59:13 by svogrig          ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -18,8 +18,27 @@ BHYEL			:= 	\033[1;93m
 BOLD			:=	\033[1m
 NC				:=	\033[0m
 
-NAME_LIB 		:= libasm.a
-NAME_TEST		:= test_libasm
+# $(1) = titre de la bannière
+define banner
+	@banner_width=$$(printf '%s' "$(1)" | wc -m); \
+	banner_tiret=$$(printf '━%.0s' $$(seq 1 $$banner_width)); \
+	printf "\n"; \
+	printf "\t\t$(BHYEL)┍━━%s━»•» 🌸 «•«━┑$(NC)\n" "$$banner_tiret"; \
+	printf "\t\t$(BHYEL)  %s COMPILATION$(NC)\n" "$(1)"; \
+	printf "\t\t$(BHYEL)┕━»•» 🌸 «•«━%s━━┙$(NC)\n" "$$banner_tiret"; \
+	printf "\n"
+endef
+
+# $(1) = cible à construire
+define build
+	$(call banner,$(1))
+	@$(MAKE) -j $(1)
+	@printf "\n"
+	@printf "\t$(BGREEN)$(1) : COMPILATION FINISHED !$(NC)\n"
+endef
+
+LIB_NAME 		:= libasm.a
+TEST_NAME		:= test_libasm
 
 # includes --------------------------------------------------------------------#
 
@@ -38,7 +57,7 @@ SRC_C			:= main.c
 # objects ---------------------------------------------------------------------#
 
 OBJ_DIR			:=	.build
-OBJ_ASM     	:= $(addprefix $(OBJ_DIR)/, $(SRC_ASM:.s=.o))
+OBJ_ASM			:= $(addprefix $(OBJ_DIR)/, $(SRC_ASM:.s=.o))
 OBJ_C			:= $(addprefix $(OBJ_DIR)/, $(SRC_C:.c=.o))
 
 # compilation -----------------------------------------------------------------#
@@ -52,35 +71,32 @@ ARFLAGS			:=	-r -c -s
 CC				:=	cc
 CC_FLAGS		:=	-Wall -Wextra -Werror
 
+-include $(OBJ_C:.o=.d)
+
 #------------------------------------------------------------------------------#
 # rules                                                                        #
 #------------------------------------------------------------------------------#
 
-all: init
-	@$(MAKE) -j make_libasm
+all: test
 
 clean:
 	@rm -rf $(OBJ_DIR) && printf "Cleaning : $(OBJ_DIR)\n"
 
 fclean: clean
-	@rm -f $(NAME_LIB)
-	@rm -rf $(OBJ_DIR) && printf "Cleaning : $(NAME_LIB)\n"
+	@rm -f $(LIB_NAME) && printf "Cleaning : $(LIB_NAME)\n"
+	@rm -f $(TEST_NAME) && printf "Cleaning : $(TEST_NAME)\n"
 
-re: fclean
-	@$(MAKE) -j all
+re: fclean all
 
-init:
-	@printf "\n"
-	@printf "\t\t$(BHYEL)┍━━━━━━━━»•» 🌸 «•«━┑$(NC)\n"
-	@printf "\t\t$(BHYEL)  libasm COMPILATION $(NC)\n"
-	@printf "\t\t$(BHYEL)┕━»•» 🌸 «•«━━━━━━━━┙$(NC)\n"
-	@printf "\n"
+libasm: $(LIB_NAME)
+# 	@if ! $(MAKE) -q $(LIB_NAME); then \
+# 		$(call build,$(LIB_NAME)) \
+# 	fi
 
-test: $(NAME_TEST)
-
-make_libasm: $(NAME_LIB)
-	@printf "\n"
-	@printf "\t$(BLINK_GREEN)$(NAME_LIB) = COMPILATION FINISHED !$(NC)\n"
+test: libasm $(TEST_NAME)
+# 	@if ! $(MAKE) -q $(TEST_NAME); then \
+# 		$(call build,$(TEST_NAME)) \
+# 	fi
 
 #------------------------------------------------------------------------------#
 # compilation                                                                  #
@@ -88,24 +104,23 @@ make_libasm: $(NAME_LIB)
 
 $(OBJ_DIR)/%.o: $(DIR_SRC)/%.s
 	@mkdir -p $(@D)
-	@printf "\033[2K\rcompiling : %s\n" $@
+	@printf "Compiling : %s\n" $@
 	@$(NASM) $(NASM_FLAGS) $< -o $@
 
 $(OBJ_DIR)/%.o: $(DIR_SRC)/%.c
 	@mkdir -p $(@D)
-	@printf "\033[2K\rcompiling : %s\n" $@
+	@printf "Compiling : %s\n" $@
 	@$(CC) $(CC_FLAGS) $(I_FLAG) -c $< -o $@
 
 #------------------------------------------------------------------------------#
 # linkage                                                                      #
 #------------------------------------------------------------------------------#
 
-$(NAME_LIB): $(OBJ_ASM)
-	@$(AR) $(ARFLAGS) $(NAME_LIB) $(OBJ_ASM)
-	@printf "\033[2K\rcreated   : %s\n" $@
+$(LIB_NAME): $(OBJ_ASM)
+	@$(AR) $(ARFLAGS) $(LIB_NAME) $(OBJ_ASM) && printf "Created : %s\n" $@
 
-$(NAME_TEST): $(OBJ_C) $(NAME_LIB)
-	@$(CC) $(CC_FLAGS) $^ -o $@ && printf "$(BGREEN)\tLinking Exe:\t$(BOLD)$@$(NC)\n"
+$(TEST_NAME): $(OBJ_C) $(LIB_NAME)
+	@$(CC) $(CC_FLAGS) $^ -o $@ && printf "Created : %s\n" $@
 
 #------------------------------------------------------------------------------#
 # specifications                                                               #
@@ -114,6 +129,6 @@ $(NAME_TEST): $(OBJ_C) $(NAME_LIB)
 .PHONY: all \
 		clean \
 		fclean \
-		bonus \
 		re \
-		makeall
+		libasm \
+		test
