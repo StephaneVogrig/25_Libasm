@@ -6,33 +6,80 @@
 /*   By: svogrig < svogrig@studebt.42.fr>           +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/10/25 19:03:14 by svogrig           #+#    #+#             */
-/*   Updated: 2026/10/26 13:55:21 by svogrig          ###   ########.fr       */
+/*   Updated: 2026/10/26 23:34:48 by svogrig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include "libasm.h"
 
-# define STRING_EMPTY "\0"
-# define STRING_SHORT "string short\0"
-# define STRING_LONG ""
+# define RED		    "\033[31m"
+# define GREEN		    "\033[32m"
+# define NC				"\033[0m"
 
-void test_strlen() {
+char *create_string(int len) {
+    char *string;
+
+    string = malloc(len+1);
+    if (string == NULL) {
+        printf(" An error occured on creating long string !");
+        return NULL;
+    }
+    memset(string, 'A', len);
+    string[len] = '\0';
+    return string;
+}
+
+char *string_all_character() {
+    char *string;
+
+    string = malloc(256);
+    if (string == NULL) {
+        printf(" An error occured on creating string with all characters !");
+        return NULL;
+    }
+    for(int i = 0; i < 255; i++) {
+        string[i] = i + 1;
+    }
+    string[255] = '\0';
+    return string;
+}
+
+void test_strlen(const char *title, const char *string) {
     size_t len_ft;
     size_t len;
 
-    len_ft = ft_strlen(STRING_EMPTY);
-    len = strlen(STRING_EMPTY);
+    len_ft = ft_strlen(string);
+    len = strlen(string);
     if (len == len_ft) {
-        printf("[OK] ");
+        printf("%s[OK]%s ", GREEN, NC);
     } else {
-        printf("[KO] ");
+        printf("%s[KO]%s ", RED, NC);
     }
-    printf("Test ft_strlen : string empty");
+    printf(" %s : %zu - %zu\n", title, len_ft, len);
+}
+
+void tests_strlen() {
+    char *string;
+
+    printf("\nTests ft_strlen\n");
+    test_strlen("Empty string", "");
+    test_strlen("Short string", "1");
+    string = create_string(1000000);
+    if (string != NULL) {
+        test_strlen("Long string", string);
+        free(string);
+    }
+    string = string_all_character();
+    if (string != NULL) {
+        test_strlen("All characters", string);
+        free(string);
+    }
 }
 
 int main() {
-    test_strlen();
+    tests_strlen();
     return (0);
 }
