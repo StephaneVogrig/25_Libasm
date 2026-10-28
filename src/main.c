@@ -6,7 +6,7 @@
 /*   By: svogrig < svogrig@studebt.42.fr>           +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/10/25 19:03:14 by svogrig           #+#    #+#             */
-/*   Updated: 2026/10/26 23:34:48 by svogrig          ###   ########.fr       */
+/*   Updated: 2026/10/28 21:21:14 by svogrig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,15 +19,15 @@
 # define GREEN		    "\033[32m"
 # define NC				"\033[0m"
 
-char *create_string(int len) {
+char *create_string(int len, char c) {
     char *string;
 
-    string = malloc(len+1);
+    string = malloc(len + 1);
     if (string == NULL) {
-        printf(" An error occured on creating long string !");
+        printf("An error occured on creating string !");
         return NULL;
     }
-    memset(string, 'A', len);
+    memset(string, c, len);
     string[len] = '\0';
     return string;
 }
@@ -35,15 +35,12 @@ char *create_string(int len) {
 char *string_all_character() {
     char *string;
 
-    string = malloc(256);
-    if (string == NULL) {
-        printf(" An error occured on creating string with all characters !");
-        return NULL;
+    string = create_string(255, '\0');
+    if (string != NULL) {
+        for(int i = 0; i < 255; i++) {
+            string[i] = i + 1;
+        }
     }
-    for(int i = 0; i < 255; i++) {
-        string[i] = i + 1;
-    }
-    string[255] = '\0';
     return string;
 }
 
@@ -67,7 +64,7 @@ void tests_strlen() {
     printf("\nTests ft_strlen\n");
     test_strlen("Empty string", "");
     test_strlen("Short string", "1");
-    string = create_string(1000000);
+    string = create_string(1000000, 'A');
     if (string != NULL) {
         test_strlen("Long string", string);
         free(string);
