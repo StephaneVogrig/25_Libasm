@@ -2,12 +2,11 @@ section .text
     global  ft_strlen
 
 ft_strlen:
-    mov     rax, rdi        ; init pointeur courant
+    xor     eax, eax            ; len = 0
     jmp     .check
-.next:
-    inc     rax
+.loop:
+    inc     rax                 ; len++
 .check:
-    cmp     byte [rax], 0   ; fin de chaine ?
-    jne     .next
-    sub     rax, rdi        ; longueur = fin - debut
+    cmp     byte [rdi + rax], 0
+    jne     .loop
     ret
