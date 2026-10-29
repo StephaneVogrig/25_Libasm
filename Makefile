@@ -6,7 +6,7 @@
 #    By: svogrig < svogrig@studebt.42.fr>           +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2026/10/24 11:46:07 by svogrig           #+#    #+#              #
-#    Updated: 2026/10/26 20:35:28 by svogrig          ###   ########.fr        #
+#    Updated: 2026/10/29 01:44:27 by svogrig          ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -14,31 +14,38 @@ GREEN			:=	\033[32m
 BOLD_GREEN		:=	\033[1;32m
 NC				:=	\033[0m
 
-LIB_NAME 		:= libasm.a
-TEST_NAME		:= test_libasm
+LIB_NAME 		:=	libasm.a
+TEST_NAME		:=	test_libasm
 
 # includes --------------------------------------------------------------------#
 
-DIR_INC				:=	include
-CPPFLAGS 			:=	$(addprefix -I,$(DIR_INC))
-DEP_FLAGS			:= -MMD -MP
+DIR_INC			:=	include
+CPPFLAGS 		:=	$(addprefix -I,$(DIR_INC))
+DEP_FLAGS		:=	-MMD -MP
 
 # sources ---------------------------------------------------------------------#
 
 DIR_SRC			:=	src
-SRC_ASM			:= ft_strlen.s
-SRC_C			:= main.c
+SRC_ASM			:=	ft_strlen.s \
+					ft_strcpy.s \
+					ft_strcmp.s \
+					ft_write.s \
+					ft_read.s \
+					ft_strdup.s \
+					ft_calloc.s
+
+SRC_C			:=	main.c
 
 # objects ---------------------------------------------------------------------#
 
 OBJ_DIR			:=	.build
-OBJ_ASM			:= $(addprefix $(OBJ_DIR)/, $(SRC_ASM:.s=.o))
-OBJ_C			:= $(addprefix $(OBJ_DIR)/, $(SRC_C:.c=.o))
+OBJ_ASM			:=	$(addprefix $(OBJ_DIR)/, $(SRC_ASM:.s=.o))
+OBJ_C			:=	$(addprefix $(OBJ_DIR)/, $(SRC_C:.c=.o))
 
 # compilation -----------------------------------------------------------------#
 
-NASM			:= nasm
-NASM_FLAGS 		:= -f elf64
+NASM			:=	nasm
+NASM_FLAGS 		:=	-f elf64
 
 AR				:=	ar
 ARFLAGS			:=	rcs
