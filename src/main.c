@@ -6,7 +6,7 @@
 /*   By: svogrig < svogrig@studebt.42.fr>           +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/10/25 19:03:14 by svogrig           #+#    #+#             */
-/*   Updated: 2026/10/29 01:37:33 by svogrig          ###   ########.fr       */
+/*   Updated: 2026/10/29 19:46:54 by svogrig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,6 +28,14 @@ typedef struct s_strings{
     char allchar[256];
     char verylong[LEN_VERYLONG + 1];
 } t_strings;
+
+void print_title_tests(const char *title) {
+    printf("\n%s%s%s\n", YELLOW, title, NC);
+}
+
+void print_title_test(const char *title) {
+    printf("%s ... ", title);
+}
 
 char *create_string(size_t len, char c) {
     char *string;
@@ -56,24 +64,12 @@ int test_strlen(const char *title, const char *string) {
     size_t len;
     int fail;
 
-    printf("%s ... ", title);
+    print_title_test(title);
     len_ft = ft_strlen(string);
     len = strlen(string);
     fail = len != len_ft;
     print_result(fail);
     return fail;
-}
-
-int tests_strlen(t_strings *s) {
-    int fail;
-
-    fail = 0;
-    printf("\n%sTests ft_strlen%s\n", YELLOW, NC);
-    fail += test_strlen("Empty string", s->empty);
-    fail += test_strlen("Short string", s->onechar);
-    fail += test_strlen("All characters", s->allchar);
-    fail += test_strlen("Long string", s->verylong);
-    return (fail);
 }
 
 int test_strcpy(const char *title, const char *src) {
@@ -84,8 +80,8 @@ int test_strcpy(const char *title, const char *src) {
     char *result;
     int fail;
 
+    print_title_test(title);
     fail = 1;
-    printf("%s ... ", title);
     len_src = strlen(src);
     dest_ft = create_string(len_src, 'X');
     if (dest_ft == NULL) {
@@ -105,16 +101,68 @@ int test_strcpy(const char *title, const char *src) {
     return (fail);
 }
 
+int tests_strlen(t_strings *s) {
+    int fail;
+
+    print_title_tests("Tests ft_strlen");
+    fail = test_strlen("Empty string", s->empty);
+    fail += test_strlen("Short string", s->onechar);
+    fail += test_strlen("All characters", s->allchar);
+    fail += test_strlen("Long string", s->verylong);
+    return (fail);
+}
+
 int tests_strcpy(t_strings *s) {
     int fail;
 
-    fail = 0;
-    printf("\n%sTests ft_strcpy%s\n", YELLOW, NC);
-    fail += test_strcpy("Empty string", s->empty);
+    print_title_tests("Tests ft_strcpy");
+    fail = test_strcpy("Empty string", s->empty);
     fail += test_strcpy("Short string", s->onechar);
     fail += test_strcpy("All characters", s->allchar);
     fail += test_strcpy("Long string", s->verylong);
     return (fail);
+}
+
+int test_strcmp(const char *title, const char *s1, const char *s2) {
+    int fail;
+    int result_ft;
+    int result;
+
+    fail = 0;
+    print_title_test(title);
+    result_ft = ft_strcmp(s1, s2);
+    result = strcmp(s1, s2);
+    fail = result_ft != result;
+    print_result(fail);
+
+    return fail;
+}
+
+int tests_strcmp(t_strings *s) {
+    int fail;
+
+    print_title_tests("Tests ft_strcmp");
+    fail = test_strcmp("empty vs empty", s->empty, s->empty);
+    fail = test_strcmp("empty vs onechar", s->empty, s->onechar);
+    fail = test_strcmp("empty vs allchar", s->empty, s->allchar);
+    fail = test_strcmp("empty vs verylong", s->empty, s->verylong);
+
+    fail = test_strcmp("onechar vs empty", s->onechar, s->empty);
+    fail = test_strcmp("onechar vs onechar", s->onechar, s->onechar);
+    fail = test_strcmp("onechar vs allchar", s->onechar, s->allchar);
+    fail = test_strcmp("onechar vs verylong", s->onechar, s->verylong);
+
+    fail = test_strcmp("allchar vs empty", s->allchar, s->empty);
+    fail = test_strcmp("allchar vs onechar", s->allchar, s->onechar);
+    fail = test_strcmp("allchar vs allchar", s->allchar, s->allchar);
+    fail = test_strcmp("allchar vs verylong", s->allchar, s->verylong);
+
+    fail = test_strcmp("verylong vs empty", s->verylong, s->empty);
+    fail = test_strcmp("verylong vs onechar", s->verylong, s->onechar);
+    fail = test_strcmp("verylong vs allchar", s->verylong, s->allchar);
+    fail = test_strcmp("verylong vs verylong", s->verylong, s->verylong);
+
+    return fail;
 }
 
 t_strings *init_strings(void) {
@@ -148,9 +196,9 @@ int main(void) {
         return (1);
     }
 
-    fail = 0;
-    fail += tests_strlen(strs_test);
+    fail = tests_strlen(strs_test);
     fail += tests_strcpy(strs_test);
+    fail += tests_strcmp(strs_test);
 
     free(strs_test);
     return (fail != 0);
