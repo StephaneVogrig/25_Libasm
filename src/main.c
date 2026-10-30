@@ -6,7 +6,7 @@
 /*   By: svogrig < svogrig@studebt.42.fr>           +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/10/25 19:03:14 by svogrig           #+#    #+#             */
-/*   Updated: 2026/10/29 19:46:54 by svogrig          ###   ########.fr       */
+/*   Updated: 2026/10/30 09:43:50 by svogrig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -35,6 +35,11 @@ void print_title_tests(const char *title) {
 
 void print_title_test(const char *title) {
     printf("%s ... ", title);
+}
+
+/* return 1 or 0 or -1*/
+static int sign(int n) {
+    return (n > 0) - (n < 0);
 }
 
 char *create_string(size_t len, char c) {
@@ -101,6 +106,22 @@ int test_strcpy(const char *title, const char *src) {
     return (fail);
 }
 
+int test_strcmp(const char *title, const char *s1, const char *s2) {
+    int fail;
+    int result_ft;
+    int result;
+
+    fail = 0;
+    print_title_test(title);
+    result_ft = ft_strcmp(s1, s2);
+    result = strcmp(s1, s2);
+    printf("ft_strcmp = %-10i | strcmp = %-10i ", result_ft, result);
+    fail = (sign(result_ft) != sign(result));
+    print_result(fail);
+
+    return fail;
+}
+
 int tests_strlen(t_strings *s) {
     int fail;
 
@@ -123,44 +144,20 @@ int tests_strcpy(t_strings *s) {
     return (fail);
 }
 
-int test_strcmp(const char *title, const char *s1, const char *s2) {
-    int fail;
-    int result_ft;
-    int result;
-
-    fail = 0;
-    print_title_test(title);
-    result_ft = ft_strcmp(s1, s2);
-    result = strcmp(s1, s2);
-    fail = result_ft != result;
-    print_result(fail);
-
-    return fail;
-}
-
 int tests_strcmp(t_strings *s) {
     int fail;
+    char title[64];
 
     print_title_tests("Tests ft_strcmp");
-    fail = test_strcmp("empty vs empty", s->empty, s->empty);
-    fail = test_strcmp("empty vs onechar", s->empty, s->onechar);
-    fail = test_strcmp("empty vs allchar", s->empty, s->allchar);
-    fail = test_strcmp("empty vs verylong", s->empty, s->verylong);
-
-    fail = test_strcmp("onechar vs empty", s->onechar, s->empty);
-    fail = test_strcmp("onechar vs onechar", s->onechar, s->onechar);
-    fail = test_strcmp("onechar vs allchar", s->onechar, s->allchar);
-    fail = test_strcmp("onechar vs verylong", s->onechar, s->verylong);
-
-    fail = test_strcmp("allchar vs empty", s->allchar, s->empty);
-    fail = test_strcmp("allchar vs onechar", s->allchar, s->onechar);
-    fail = test_strcmp("allchar vs allchar", s->allchar, s->allchar);
-    fail = test_strcmp("allchar vs verylong", s->allchar, s->verylong);
-
-    fail = test_strcmp("verylong vs empty", s->verylong, s->empty);
-    fail = test_strcmp("verylong vs onechar", s->verylong, s->onechar);
-    fail = test_strcmp("verylong vs allchar", s->verylong, s->allchar);
-    fail = test_strcmp("verylong vs verylong", s->verylong, s->verylong);
+    fail = 0;
+    const char *names[] = {"Empty string", "Short string", "All characters", "Long string", "abc", "abcd", "12345", "12045"};
+    const char *strings[]  = {s->empty, s->onechar, s->allchar, s->verylong, "abc", "abcd", "12345", "12045"};
+    for (long unsigned int i = 0; i < sizeof(*names); i++) {
+        for (long unsigned int j = 0; j < sizeof(*strings); j++) {
+            snprintf(title, sizeof title, "%-15s vs %-15s", names[i], names[j]);
+            fail += test_strcmp(title, strings[i], strings[j]);
+        }
+    }
 
     return fail;
 }
@@ -173,17 +170,12 @@ t_strings *init_strings(void) {
         printf("Calloc failed for strings test !\n");
         return (NULL);
     }
-
-    // fill onechar
     s->onechar[0] = '1';
-
-    // fill verylong
-    memset(s->verylong, 'A', LEN_VERYLONG);
-
-    // fill allchar
     for(int i = 0; i < 255; i++) {
         s->allchar[i] = i + 1;
     }
+    memset(s->verylong, 'A', LEN_VERYLONG);
+
     return (s);
 }
 
@@ -195,6 +187,8 @@ int main(void) {
     if (strs_test == NULL) {
         return (1);
     }
+    // for no buffering stdout
+    setvbuf(stdout, NULL, _IONBF, 0);
 
     fail = tests_strlen(strs_test);
     fail += tests_strcpy(strs_test);
