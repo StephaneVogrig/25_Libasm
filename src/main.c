@@ -6,7 +6,7 @@
 /*   By: svogrig < svogrig@studebt.42.fr>           +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/10/25 19:03:14 by svogrig           #+#    #+#             */
-/*   Updated: 2026/10/30 09:43:50 by svogrig          ###   ########.fr       */
+/*   Updated: 2026/10/30 11:34:50 by svogrig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -34,7 +34,7 @@ void print_title_tests(const char *title) {
 }
 
 void print_title_test(const char *title) {
-    printf("%s ... ", title);
+    printf("%-32s ... ", title);
 }
 
 /* return 1 or 0 or -1*/
@@ -65,14 +65,15 @@ char *create_string(size_t len, char c) {
 }
 
 int test_strlen(const char *title, const char *string) {
-    size_t len_ft;
-    size_t len;
+    size_t result_ft;
+    size_t result;
     int fail;
 
     print_title_test(title);
-    len_ft = ft_strlen(string);
-    len = strlen(string);
-    fail = len != len_ft;
+    result_ft = ft_strlen(string);
+    result = strlen(string);
+    printf("ft_strlen = %-10li | strlen = %-10li ", result_ft, result);
+    fail = result_ft != result;
     print_result(fail);
     return fail;
 }
@@ -111,7 +112,6 @@ int test_strcmp(const char *title, const char *s1, const char *s2) {
     int result_ft;
     int result;
 
-    fail = 0;
     print_title_test(title);
     result_ft = ft_strcmp(s1, s2);
     result = strcmp(s1, s2);
@@ -154,10 +154,13 @@ int tests_strcmp(t_strings *s) {
     const char *strings[]  = {s->empty, s->onechar, s->allchar, s->verylong, "abc", "abcd", "12345", "12045"};
     for (long unsigned int i = 0; i < sizeof(*names); i++) {
         for (long unsigned int j = 0; j < sizeof(*strings); j++) {
-            snprintf(title, sizeof title, "%-15s vs %-15s", names[i], names[j]);
+            snprintf(title, sizeof title, "%s vs %s", names[i], names[j]);
             fail += test_strcmp(title, strings[i], strings[j]);
         }
     }
+
+    fail += test_strcmp("unsigned > 127",   "\xff", "\x01");
+    fail += test_strcmp("unsigned reverse", "\x01", "\xff");
 
     return fail;
 }
