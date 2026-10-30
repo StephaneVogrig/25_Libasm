@@ -22,8 +22,9 @@ Pour compiler un fichier source en asm :
 nasm -f elf64 source.s -o code_objet.o
 ```
 Pour étudier le résultat de la compilation d'un programme en C :
+```bash
 gcc -O2 -S -masm=intel -fcf-protection=none -fno-asynchronous-unwind-tables test.c -o test.s
-
+```
 ## Linkage
 Pour créer un exécutable :
 * Avec `ld`
@@ -107,7 +108,26 @@ En suivant la convention d'appel System V :
 | mov rdx, rdi      | move destination, source           | copie le contenu du registre source dans le registre destination            | destination = source   |
 | mov rdx, [adress] | move destination, valeur à adresse | copie dans destination la valeur contenue en mémoire à adresse              | registre = *adress     |
 | test al, al       | teste registre, valeur             | effectue un AND sans modifier les registres, mais modifie les flags logique | if (al == 0)           |
-| je label_equal    | jump equal étiquette               | suate si le flag ZF = 1                                                     | if (ZF== 1) goto label |
+| je label_equal    | jump equal étiquette               | saute si le flag ZF = 1                                                     | if (ZF == 1) goto label |
+
+* [movzx](https://www.reverseengineering.app/en/assembly/movzx-movsx)
+    ```nasm
+    movzx eax, bl   ; copie bl dans eax en remplissant les bits 8 à 31 avec des zéros
+                    ; (les 32 bits hauts de rax sont aussi mis à zéro automatiquement)
+    ```
+
+    Équivalent à :
+    ```nasm
+    xor eax, eax
+    mov al, bl
+    ```
+
+    Attention :
+    - `xor` modifie les flags alors que `movzx` ne les modifie pas
+    - l'équivalence n'est valable que si la source n'est pas incluse
+    dans la destination (`movzx eax, al` ≠ `xor eax, eax` + `mov al, al`).
+    Dans ce cas, utiliser `and eax, 0xFF`, `and` modifie les flags.
+
 
 ## Accès mémoire
 Pour obtenir le contenu en mémoire, on utilise la notation `[...]`.
