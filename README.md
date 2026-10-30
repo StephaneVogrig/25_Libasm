@@ -95,9 +95,11 @@ En suivant la convention d'appel System V :
 * `r10` et `r11` : temporaires purs
 
 * Signification/usage historique des registres :
+    - `rax` : Accumulateur
     - `rcx` : Compter
     - `rdx` : Data
     - `rsp` : Stack Pointer
+    - `rip` : Instruction Pointer
     - `rbp` : Base Pointer
     - `rsi` : Source Index
     - `rdi` : Destination Index
@@ -146,6 +148,22 @@ lea rax, [rdi + rcx*4]         ; rax = rdi + rcx*4, aucun accès mémoire
 Dans un accès mémoire, le calcul `[...]` est fait par l'AGU (Address Generation Unit), pas par l'ALU (Arithmetic Logic Unit). Cela évite une instruction `add` séparée et ne mobilise pas de port ALU, mais le calcul a une latence propre, incluse dans celle du load. `[rdi + rax]` revient donc moins cher qu'un `add` suivi d'un `mov`, surtout en nombre d’instructions et de registres utilisés.
 Pour `lea`, l'unité utilisée dépend du CPU (AGU sur les anciens, souvent ALU sur les Intel récents).
 
+### Accés indépendant de la position
+
+| Sigle | Nom complet | Rôle |
+|---|---|---|
+| **PIC** | Position Independent Code | Code sans adresse absolue, exécutable à n'importe quelle adresse |
+| **PIE** | Position Independent Executable | Exécutable entièrement compilé/lié en PIC |
+| **ASLR** | Address Space Layout Randomization | Randomisation des adresses (pile, tas, libs, binaire PIE) à chaque exécution |
+| **ROP** | Return-Oriented Programming | Attaque chaînant des « gadgets » de code existant (rendue plus difficile par l'ASLR) |
+| **NX / DEP** | No eXecute / Data Execution Prevention | Pile et tas non exécutables |
+| **RELRO** | RELocation Read-Only | Rend la GOT (partiellement ou totalement) en lecture seule après chargement |
+| **PLT** | Procedure Linkage Table | Stubs de code : `call malloc@PLT` saute vers l'adresse stockée dans la GOT |
+| **GOT** | Global Offset Table | Tableau de pointeurs rempli par le loader avec les vraies adresses des symboles externes |
+| **ELF** | Executable and Linkable Format | Format des binaires sous Linux |
+| **EXEC / DYN** | Types ELF | `EXEC` = non-PIE (adresse fixe), `DYN` = PIE ou bibliothèque partagée |
+| **ABI** | Application Binary Interface | Convention d'appel (ici System V AMD64) |
+
 ## Astuces
 * `xor reg, reg` plutôt que `mov reg, 0` :<br>
 Met le registre à zéro sans encoder de valeur immédiate, ce qui donne un code machine plus compact de 3 à 4 octets. Attention : `xor` modifie les flags, contrairement à `mov`. Idiome standard pour mettre un registre à zéro. `xor eax, eax` met à zéro tout rax grâce à l’extension à zéro automatique des écritures 32 bits, c’est la forme préférée à `xor rax, rax`.
@@ -171,6 +189,8 @@ strace ./test
 ```bash
 valgrind --leak-check=full ./test
 ```
+
+
 
 ## Documentation
 [x86 Assembly/Interfacing with Linux](https://en.wikibooks.org/wiki/X86_Assembly/Interfacing_with_Linux)<br>
