@@ -6,13 +6,14 @@
 /*   By: svogrig < svogrig@studebt.42.fr>           +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/10/25 19:03:14 by svogrig           #+#    #+#             */
-/*   Updated: 2026/10/30 11:34:50 by svogrig          ###   ########.fr       */
+/*   Updated: 2026/10/30 13:19:26 by svogrig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include "libasm.h"
 
 # define RED		    "\033[31m"
@@ -28,6 +29,23 @@ typedef struct s_strings{
     char allchar[256];
     char verylong[LEN_VERYLONG + 1];
 } t_strings;
+
+t_strings *init_strings(void) {
+    t_strings *s;
+
+    s = calloc(1, sizeof(t_strings));
+    if (s == NULL) {
+        printf("Calloc failed for strings test !\n");
+        return (NULL);
+    }
+    s->onechar[0] = '1';
+    for(int i = 0; i < 255; i++) {
+        s->allchar[i] = i + 1;
+    }
+    memset(s->verylong, 'A', LEN_VERYLONG);
+
+    return (s);
+}
 
 void print_title_tests(const char *title) {
     printf("\n%s%s%s\n", YELLOW, title, NC);
@@ -122,6 +140,16 @@ int test_strcmp(const char *title, const char *s1, const char *s2) {
     return fail;
 }
 
+int test_write(const char *title, const char *src) {
+    int fail;
+
+    print_title_test(title);
+    fail = (NULL != src);
+    print_result(fail);
+
+    return fail;
+}
+
 int tests_strlen(t_strings *s) {
     int fail;
 
@@ -165,21 +193,15 @@ int tests_strcmp(t_strings *s) {
     return fail;
 }
 
-t_strings *init_strings(void) {
-    t_strings *s;
+int tests_write(t_strings *s) {
+    int fail;
 
-    s = calloc(1, sizeof(t_strings));
-    if (s == NULL) {
-        printf("Calloc failed for strings test !\n");
-        return (NULL);
-    }
-    s->onechar[0] = '1';
-    for(int i = 0; i < 255; i++) {
-        s->allchar[i] = i + 1;
-    }
-    memset(s->verylong, 'A', LEN_VERYLONG);
-
-    return (s);
+    print_title_tests("Tests ft_write");
+    fail = test_write("Empty string", s->empty);
+    fail += test_write("Short string", s->onechar);
+    fail += test_write("All characters", s->allchar);
+    fail += test_write("Long string", s->verylong);
+    return (fail);
 }
 
 int main(void) {
@@ -196,7 +218,9 @@ int main(void) {
     fail = tests_strlen(strs_test);
     fail += tests_strcpy(strs_test);
     fail += tests_strcmp(strs_test);
+    fail += tests_write(strs_test);
 
+    printf("\n%sTests failed :%s %i\n", YELLOW, NC, fail);
     free(strs_test);
     return (fail != 0);
 }
