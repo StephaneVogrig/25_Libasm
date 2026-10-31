@@ -6,7 +6,7 @@
 /*   By: svogrig < svogrig@studebt.42.fr>           +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/10/25 19:03:14 by svogrig           #+#    #+#             */
-/*   Updated: 2026/10/31 18:43:22 by svogrig          ###   ########.fr       */
+/*   Updated: 2026/10/31 19:34:41 by svogrig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,6 +17,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <signal.h>
 #include "libasm.h"
 
 #define RED		    "\033[31m"
@@ -115,7 +116,7 @@ int test_strcpy(const char *title, const char *src) {
     int fail;
 
     print_title_test(title);
-    fail = 1;
+    fail = 0;
     len_src = strlen(src);
     dest_ft = create_string(len_src, 'X');
     if (dest_ft == NULL) {
@@ -150,24 +151,29 @@ int test_strcmp(const char *title, const char *s1, const char *s2) {
     return fail;
 }
 
-int test_write(const char *title, int fd, const void *buf, size_t count) {
+int test_write_core(int fd, const void *buf, size_t count) {
     int fail;
-    ssize_t result_ft;
-    ssize_t result_libc;
-    int errno_ft;
-    int errno_libc;
+    t_results ft;
+    t_results libc;
 
-    print_title_test(title);
     errno = 4242;
-    result_ft = ft_write(fd, buf, count);
-    errno_ft = errno;
+    ft.result = ft_write(fd, buf, count);
+    ft.err_no = errno;
     errno = 4242;
-    result_libc = write(fd, buf, count);
-    errno_libc = errno;
-    printf("ft_write = %-10li, errno %-4i | write = %-10li, errno %-4i ", result_ft, errno_ft, result_libc, errno_libc);
-    fail = (result_ft != result_libc) || (errno_ft != errno_libc);
+    libc.result = write(fd, buf, count);
+    libc.err_no = errno;
+    printf("ft_write = %-10li, errno %-4i | write = %-10li, errno %-4i ", ft.result, ft.err_no, libc.result, libc.err_no);
+    fail = (ft.result != libc.result) || (ft.err_no != libc.err_no);
     print_result(fail);
 
+    return (fail);
+}
+
+int test_write(const char *title, int fd, const void *buf, size_t count) {
+    int fail;
+
+    print_title_test(title);
+    fail = test_write_core(fd, buf, count);
     return fail;
 }
 
@@ -208,18 +214,18 @@ int test_write_pipe(const char *title, const char *str) {
     count = strlen(str) + 1;
 
     if (!create_pipe(fd_ft)) {
-        return (1);
+        return (0);
     }
     if (!create_pipe(fd_libc)) {
         close_fds(fd_ft);
-        return (1);
+        return (0);
     }
 
     ft.out = make_calloc(count + 1, 1);
     if (ft.out == NULL) {
         close_fds(fd_ft);
         close_fds(fd_libc);
-        return (1);
+        return (0);
     }
 
     libc.out = make_calloc(count + 1, 1);
@@ -227,7 +233,7 @@ int test_write_pipe(const char *title, const char *str) {
         close_fds(fd_ft);
         close_fds(fd_libc);
         free(ft.out);
-        return (1);
+        return (0);
     }
 
     errno = 4242;
@@ -300,10 +306,25 @@ int tests_strcmp(t_strings *s) {
     return fail;
 }
 
+int test_write_file(const char *title, const char *path, int flags,  const void *buf, size_t count) {
+    int fail;
+    int fd;
+
+    print_title_test(title);
+    fd = open(path, flags);
+    if (fd == -1) {
+        printf("open %s failed\n", path);
+        return (0);
+    }
+    fail = test_write_core(fd, buf, count);
+    close(fd);
+
+    return (fail);
+}
+
 int tests_write(t_strings *s) {
     int fail;
     int fd[2];
-    int fd_full;
 
     print_title_tests("Tests ft_write");
     fail = test_write("Invalid fd", -1, s->onechar, 1);
@@ -311,19 +332,17 @@ int tests_write(t_strings *s) {
         fail += test_write("Buffer null", fd[1], NULL, 1);
         fail += test_write("Buffer null, len 0", fd[1], NULL, 0);
         fail += test_write("Len 0", fd[1], s->onechar, 0);
-        fail += test_write("Wrong pipe side", fd[0], s->onechar, 1);
+        fail += test_write("Wrong pipe side, error EBADF", fd[0], s->onechar, 1);
         close(fd[0]);
+        fail += test_write("Pipe closed on read, error EPIPE", fd[1], s->onechar, 1);
         close(fd[1]);
-        fail += test_write("Closed fd", fd[1], s->onechar, 1);
+        fail += test_write("Closed fd, error EBADF", fd[1], s->onechar, 1);
     }
 
-    fd_full = open("/dev/full", O_WRONLY);
-    if (fd_full != -1) {
-        fail += test_write("Disk full", fd_full, s->onechar, 1);
-        close(fd_full);
-    } else {
-        printf("open /dev/full failed\n");
-    }
+    fail += test_write_file("Disk full", "/dev/full", O_WRONLY, s->onechar, 1);
+    fail += test_write_file("Read-only fd, error EBADF", "/dev/null", O_RDONLY, s->onechar, 1);
+    fail += test_write_file("Directory, error EBADF", ".", O_RDONLY, s->onechar, 1);
+    fail += test_write_file("Long string, /dev/null", "/dev/null", O_WRONLY, s->verylong, LEN_VERYLONG);
 
     fail += test_write_pipe("Empty string", s->empty);
     fail += test_write_pipe("Short string", s->onechar);
@@ -342,6 +361,8 @@ int main(void) {
     }
     // for no buffering stdout
     setvbuf(stdout, NULL, _IONBF, 0);
+    // for no crash when SIGPIPE
+    signal(SIGPIPE, SIG_IGN);
 
     fail = tests_strlen(strs_test);
     fail += tests_strcpy(strs_test);
