@@ -6,22 +6,25 @@
 /*   By: svogrig < svogrig@studebt.42.fr>           +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/10/25 19:03:14 by svogrig           #+#    #+#             */
-/*   Updated: 2026/10/30 13:19:26 by svogrig          ###   ########.fr       */
+/*   Updated: 2026/10/31 18:43:22 by svogrig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <errno.h>
+#include <fcntl.h>
 #include "libasm.h"
 
-# define RED		    "\033[31m"
-# define GREEN		    "\033[32m"
-# define YELLOW		    "\033[33m"
-# define NC				"\033[0m"
+#define RED		    "\033[31m"
+#define GREEN	    "\033[32m"
+#define YELLOW	    "\033[33m"
+#define NC			"\033[0m"
 
-# define LEN_VERYLONG   1000000
+#define LEN_VERYLONG   1000000
 
 typedef struct s_strings{
     char empty[1];
@@ -29,6 +32,13 @@ typedef struct s_strings{
     char allchar[256];
     char verylong[LEN_VERYLONG + 1];
 } t_strings;
+
+typedef struct s_test_result {
+    ssize_t result;
+    int err_no;
+    ssize_t len;
+    char *out;
+} t_results;
 
 t_strings *init_strings(void) {
     t_strings *s;
@@ -140,14 +150,109 @@ int test_strcmp(const char *title, const char *s1, const char *s2) {
     return fail;
 }
 
-int test_write(const char *title, const char *src) {
+int test_write(const char *title, int fd, const void *buf, size_t count) {
     int fail;
+    ssize_t result_ft;
+    ssize_t result_libc;
+    int errno_ft;
+    int errno_libc;
 
     print_title_test(title);
-    fail = (NULL != src);
+    errno = 4242;
+    result_ft = ft_write(fd, buf, count);
+    errno_ft = errno;
+    errno = 4242;
+    result_libc = write(fd, buf, count);
+    errno_libc = errno;
+    printf("ft_write = %-10li, errno %-4i | write = %-10li, errno %-4i ", result_ft, errno_ft, result_libc, errno_libc);
+    fail = (result_ft != result_libc) || (errno_ft != errno_libc);
     print_result(fail);
 
     return fail;
+}
+
+int create_pipe(int *fds) {
+    int ok;
+
+    ok = (pipe2(fds, O_NONBLOCK) == 0);
+    if (!ok) {
+        printf("Open pipe failed\n");
+    }
+    return (ok);
+}
+
+static void close_fds(int *fd) {
+        close(fd[0]);
+        close(fd[1]);
+}
+
+void *make_calloc(size_t nmemb, size_t size) {
+    void *ptr;
+
+    ptr = calloc(nmemb, size);
+    if (ptr == NULL){
+        printf("Calloc failed\n");
+    }
+    return (ptr);
+}
+
+int test_write_pipe(const char *title, const char *str) {
+    int fail;
+    int fd_ft[2];
+    int fd_libc[2];
+    size_t  count;
+    t_results ft;
+    t_results libc;
+
+    print_title_test(title);
+    count = strlen(str) + 1;
+
+    if (!create_pipe(fd_ft)) {
+        return (1);
+    }
+    if (!create_pipe(fd_libc)) {
+        close_fds(fd_ft);
+        return (1);
+    }
+
+    ft.out = make_calloc(count + 1, 1);
+    if (ft.out == NULL) {
+        close_fds(fd_ft);
+        close_fds(fd_libc);
+        return (1);
+    }
+
+    libc.out = make_calloc(count + 1, 1);
+    if (libc.out == NULL) {
+        close_fds(fd_ft);
+        close_fds(fd_libc);
+        free(ft.out);
+        return (1);
+    }
+
+    errno = 4242;
+    ft.result = ft_write(fd_ft[1], str, count);
+    ft.err_no = errno;
+    errno = 4242;
+    libc.result = write(fd_libc[1], str, count);
+    libc.err_no = errno;
+
+    close(fd_ft[1]);
+    close(fd_libc[1]);
+
+    ft.len = read(fd_ft[0], ft.out, count + 1);
+    libc.len = read(fd_libc[0], libc.out, count + 1);
+
+    printf("ft_write = %-3li, errno %-4i, len out %-3li | write = %-3li, errno %-4i, len out %-3li ", ft.result, ft.err_no, ft.len, libc.result, libc.err_no, libc.len);
+    fail = (ft.result != libc.result) || (ft.err_no != libc.err_no) || (ft.len != libc.len) || (memcmp(ft.out, libc.out, count));
+    print_result(fail);
+
+    close(fd_ft[0]);
+    close(fd_libc[0]);
+    free(ft.out);
+    free(libc.out);
+
+    return (fail);
 }
 
 int tests_strlen(t_strings *s) {
@@ -175,13 +280,15 @@ int tests_strcpy(t_strings *s) {
 int tests_strcmp(t_strings *s) {
     int fail;
     char title[64];
+    long unsigned int n;
 
     print_title_tests("Tests ft_strcmp");
     fail = 0;
     const char *names[] = {"Empty string", "Short string", "All characters", "Long string", "abc", "abcd", "12345", "12045"};
     const char *strings[]  = {s->empty, s->onechar, s->allchar, s->verylong, "abc", "abcd", "12345", "12045"};
-    for (long unsigned int i = 0; i < sizeof(*names); i++) {
-        for (long unsigned int j = 0; j < sizeof(*strings); j++) {
+    n = sizeof(names) / sizeof(names[0]);
+    for (long unsigned int i = 0; i < n; i++) {
+        for (long unsigned int j = 0; j < n; j++) {
             snprintf(title, sizeof title, "%s vs %s", names[i], names[j]);
             fail += test_strcmp(title, strings[i], strings[j]);
         }
@@ -195,12 +302,33 @@ int tests_strcmp(t_strings *s) {
 
 int tests_write(t_strings *s) {
     int fail;
+    int fd[2];
+    int fd_full;
 
     print_title_tests("Tests ft_write");
-    fail = test_write("Empty string", s->empty);
-    fail += test_write("Short string", s->onechar);
-    fail += test_write("All characters", s->allchar);
-    fail += test_write("Long string", s->verylong);
+    fail = test_write("Invalid fd", -1, s->onechar, 1);
+    if (create_pipe(fd)) {
+        fail += test_write("Buffer null", fd[1], NULL, 1);
+        fail += test_write("Buffer null, len 0", fd[1], NULL, 0);
+        fail += test_write("Len 0", fd[1], s->onechar, 0);
+        fail += test_write("Wrong pipe side", fd[0], s->onechar, 1);
+        close(fd[0]);
+        close(fd[1]);
+        fail += test_write("Closed fd", fd[1], s->onechar, 1);
+    }
+
+    fd_full = open("/dev/full", O_WRONLY);
+    if (fd_full != -1) {
+        fail += test_write("Disk full", fd_full, s->onechar, 1);
+        close(fd_full);
+    } else {
+        printf("open /dev/full failed\n");
+    }
+
+    fail += test_write_pipe("Empty string", s->empty);
+    fail += test_write_pipe("Short string", s->onechar);
+    fail += test_write_pipe("All characters", s->allchar);
+    fail += test_write_pipe("Long string", s->verylong);
     return (fail);
 }
 
