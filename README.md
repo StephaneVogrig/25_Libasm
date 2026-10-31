@@ -150,19 +150,20 @@ Pour `lea`, l'unité utilisée dépend du CPU (AGU sur les anciens, souvent ALU 
 
 ### Accés indépendant de la position
 
-| Sigle | Nom complet | Rôle |
-|---|---|---|
-| **PIC** | Position Independent Code | Code sans adresse absolue, exécutable à n'importe quelle adresse |
-| **PIE** | Position Independent Executable | Exécutable entièrement compilé/lié en PIC |
-| **ASLR** | Address Space Layout Randomization | Randomisation des adresses (pile, tas, libs, binaire PIE) à chaque exécution |
-| **ROP** | Return-Oriented Programming | Attaque chaînant des « gadgets » de code existant (rendue plus difficile par l'ASLR) |
-| **NX / DEP** | No eXecute / Data Execution Prevention | Pile et tas non exécutables |
-| **RELRO** | RELocation Read-Only | Rend la GOT (partiellement ou totalement) en lecture seule après chargement |
-| **PLT** | Procedure Linkage Table | Stubs de code : `call malloc@PLT` saute vers l'adresse stockée dans la GOT |
-| **GOT** | Global Offset Table | Tableau de pointeurs rempli par le loader avec les vraies adresses des symboles externes |
-| **ELF** | Executable and Linkable Format | Format des binaires sous Linux |
-| **EXEC / DYN** | Types ELF | `EXEC` = non-PIE (adresse fixe), `DYN` = PIE ou bibliothèque partagée |
-| **ABI** | Application Binary Interface | Convention d'appel (ici System V AMD64) |
+| Sigle          | Nom complet                            | Rôle                                                                                     |
+| -------------- | -------------------------------------- | ---------------------------------------------------------------------------------------- |
+| **ABI**        | Application Binary Interface           | Convention d'appel (ici System V AMD64)                                                  |
+| **PIC**        | Position Independent Code              | Code sans adresse absolue, exécutable à n'importe quelle adresse                         |
+| **PIE**        | Position Independent Executable        | Exécutable entièrement compilé/lié en PIC                                                |
+| **ASLR**       | Address Space Layout Randomization     | Randomisation des adresses (pile, tas, libs, binaire PIE) à chaque exécution             |
+| **ROP**        | Return-Oriented Programming            | Attaque chaînant des « gadgets » de code existant (rendue plus difficile par l'ASLR)     |
+| **NX / DEP**   | No eXecute / Data Execution Prevention | Pile et tas non exécutables                                                              |
+| **GOT**        | Global Offset Table                    | Tableau de pointeurs rempli par le loader avec les vraies adresses des symboles externes |
+| **RELRO**      | RELocation Read-Only                   | Rend la GOT (partiellement ou totalement) en lecture seule après chargement              |
+| **PLT**        | Procedure Linkage Table                | Stubs de code : `call malloc@PLT` saute vers l'adresse stockée dans la GOT               |
+| **ELF**        | Executable and Linkable Format         | Format des binaires sous Linux                                                           |
+| **EXEC / DYN** | Types ELF                              | `EXEC` = non-PIE (adresse fixe), `DYN` = PIE ou bibliothèque partagée                    |
+| **TLS**        | Thread-Local Storage                   | Espace mémoire local et spécifique à un thread                                           |
 
 ## Astuces
 * `xor reg, reg` plutôt que `mov reg, 0` :<br>
