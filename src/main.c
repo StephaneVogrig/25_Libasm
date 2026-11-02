@@ -6,7 +6,7 @@
 /*   By: svogrig < svogrig@studebt.42.fr>           +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/10/25 19:03:14 by svogrig           #+#    #+#             */
-/*   Updated: 2026/11/01 20:55:36 by svogrig          ###   ########.fr       */
+/*   Updated: 2026/11/02 22:53:46 by svogrig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,6 +28,8 @@
 #define PIPE_RD 0
 #define PIPE_WR 1
 
+#define LEN_BUF 10
+
 #define LEN_VERYLONG   1000000
 
 typedef struct s_strings{
@@ -43,6 +45,11 @@ typedef struct s_results {
     ssize_t libc_result;
     int libc_errno;
 } t_results_2;
+
+typedef struct s_pair_fd {
+    int ft;
+    int libc;
+} t_pairfd;
 
 t_strings *init_strings(void) {
     t_strings *s;
@@ -82,6 +89,10 @@ void print_skip(void) {
     printf("%s[SKIP]%s\n", YELLOW, NC);
 }
 
+void print_failed(const char*template, const char *arg) {
+    printf(template, arg);
+    print_skip();
+}
 /* return 1 or 0 or -1*/
 static int sign(int n) {
     return (n > 0) - (n < 0);
@@ -116,7 +127,7 @@ static void close_fds(int *fd) {
         close(fd[1]);
 }
 
-void *make_calloc(size_t nmemb, size_t size) {
+void *run_calloc(size_t nmemb, size_t size) {
     void *ptr;
 
     ptr = calloc(nmemb, size);
@@ -126,17 +137,24 @@ void *make_calloc(size_t nmemb, size_t size) {
     return (ptr);
 }
 
+int run_memcmp(const void *buf1, const void *buf2, size_t n) {
+    int diff;
+
+    diff = memcmp(buf1, buf2, n) != 0;
+    printf("ft_buf %c= libc_buf ", diff ? '!' : '=');
+    return (diff);
+}
+
 int compare_read_out(int fd1, int fd2, size_t count) {
     ssize_t len1;
     ssize_t len2;
     char *out1;
     char *out2;
     int fail;
-    int diff;
 
     fail = 0;
-    out1 = make_calloc(count, 1);
-    out2 = make_calloc(count, 1);
+    out1 = run_calloc(count, 1);
+    out2 = run_calloc(count, 1);
     if ((out1 == NULL) || (out2 == NULL)) {
         fail = -1;
     }
@@ -152,13 +170,56 @@ int compare_read_out(int fd1, int fd2, size_t count) {
     }
     if (fail >= 0) {
         printf ("len1 = %7zd, len2 = %7zd ", len1, len2);
-        diff = memcmp(out1, out2, count) != 0;
-        printf("out1 %c= out2 ", diff ? '!' : '=');
-        fail |= diff;
+        fail |= run_memcmp(out1, out2, count);
     }
     free(out1);
     free(out2);
     return (fail);
+}
+
+int display_analyze_results(t_results_2 r, const char *fct) {
+    printf("ft_%s = %-10zd, errno %-4i | %s = %-10zd, errno %-4i ", fct, r.ft_result, r.ft_errno, fct, r.libc_result, r.libc_errno);
+    return ((r.ft_result != r.libc_result) || (r.ft_errno != r.libc_errno));
+}
+
+int run_open(const char *path, int flags) {
+    int fd;
+
+    fd = open(path, flags);
+    if (fd == -1) {
+        printf("failed to open %s ", path);
+        print_skip();
+    }
+    return (fd);
+}
+
+int run_mkstemp(char *path){
+    int fd;
+
+    fd = mkstemp(path);
+    if (fd == -1) {
+        printf("failed to create %s ", path);
+        print_skip();
+    }
+    return (fd);
+}
+
+int open_pairfd(const char *path, int flags, t_pairfd *fd) {
+    fd->ft = run_open(path, flags);
+    if (fd->ft == -1) {
+        return (1);
+    }
+    fd->libc = run_open(path, flags);
+    if (fd->libc == -1) {
+        close(fd->ft);
+        return (1);
+    }
+    return (0);
+}
+
+void close_pairfd(t_pairfd fd) {
+    close(fd.ft);
+    close(fd.libc);
 }
 
 int test_strlen(const char *title, const char *string) {
@@ -229,8 +290,8 @@ int test_write_results(int fd_ft, int fd_libc, const void *buf, size_t count) {
     errno = 4242;
     r.libc_result = write(fd_libc, buf, count);
     r.libc_errno = errno;
-    printf("ft_write = %-10zd, errno %-4i | write = %-10zd, errno %-4i ", r.ft_result, r.ft_errno, r.libc_result, r.libc_errno);
-    fail = (r.ft_result != r.libc_result) || (r.ft_errno != r.libc_errno);
+
+    fail = display_analyze_results(r, "write");
 
     return (fail);
 }
@@ -307,10 +368,8 @@ int test_write_file(const char *title, const char *path, int flags,  const void 
     int fd;
 
     print_title_test(title);
-    fd = open(path, flags);
+    fd = run_open(path, flags);
     if (fd == -1) {
-        printf("open %s failed ", path);
-        print_skip();
         return (0);
     }
     fail = test_write_core(fd, buf, count);
@@ -328,16 +387,12 @@ int test_write_tmpfile(const char *title, const void *buf, size_t count) {
     int cro;
 
     print_title_test(title);
-    fd_ft = mkstemp(path_ft);
+    fd_ft = run_mkstemp(path_ft);
     if (fd_ft == -1) {
-        printf("failed to create %s ", path_ft);
-        print_skip();
         return (0);
     }
-    fd_libc = mkstemp(path_libc);
+    fd_libc = run_mkstemp(path_libc);
     if (fd_libc == -1) {
-        printf("failed to create %s ", path_libc);
-        print_skip();
         close(fd_ft);
         unlink(path_ft);
         return (0);
@@ -360,6 +415,50 @@ int test_write_tmpfile(const char *title, const void *buf, size_t count) {
     unlink(path_libc);
 
     return (fail);
+}
+
+int test_write_pipe_read_closed(const char *title) {
+    int fail;
+    int fd[2];
+
+    print_title_test(title);
+    if (!create_pipe(fd)) {
+        return (0);
+    };
+    close(fd[0]);
+    fail = test_write_core(fd[1], "A", 1);
+    close(fd[1]);
+
+    return (fail);
+}
+
+int test_write_pipe_full(const char *title) {
+    int fail;
+    int fd[2];
+    char buf[4096] = {0};
+
+    print_title_test(title);
+    if (!create_pipe(fd)) {
+        return (0);
+    };
+    while (write(fd[1], buf, sizeof buf) > 0) {
+    }
+    fail = test_write_core(fd[1], "A", 1);
+    close_fds(fd);
+
+    return (fail);
+}
+
+int test_write_pipe_closed(const char *title) {
+    int fd[2];
+
+    print_title_test(title);
+    if (!create_pipe(fd)) {
+        return (0);
+    };
+    close_fds(fd);
+
+    return (test_write_core(fd[1], "A", 1));
 }
 
 int tests_strlen(t_strings *s) {
@@ -407,50 +506,6 @@ int tests_strcmp(t_strings *s) {
     return fail;
 }
 
-int test_write_pipe_read_closed(const char *title) {
-    int fail;
-    int fd[2];
-
-    print_title_test(title);
-    if (!create_pipe(fd)) {
-        return (0);
-    };
-    close(fd[0]);
-    fail = test_write_core(fd[1], "A", 1);
-    close(fd[1]);
-
-    return (fail);
-}
-
-int test_write_pipe_full(const char *title) {
-    int fail;
-    int fd[2];
-    char buf[4096] = {0};
-
-    print_title_test(title);
-    if (!create_pipe(fd)) {
-        return (0);
-    };
-    while (write(fd[1], buf, sizeof buf) > 0) {
-    }
-    fail = test_write_core(fd[1], "A", 1);
-    close_fds(fd);
-
-    return (fail);
-}
-
-int test_write_pipe_closed(const char *title) {
-    int fd[2];
-
-    print_title_test(title);
-    if (!create_pipe(fd)) {
-        return (0);
-    };
-    close_fds(fd);
-
-    return (test_write_core(fd[1], "A", 1));
-}
-
 int tests_write(t_strings *s) {
     int fail;
 
@@ -488,6 +543,109 @@ int tests_write(t_strings *s) {
     return (fail);
 }
 
+int test_read_core(int ft_fd, int libc_fd, void *ft_buf, void *libc_buf, size_t count) {
+    int fail;
+    t_results_2 r;
+
+    errno = 4242;
+    r.ft_result = ft_read(ft_fd, ft_buf, count);
+    r.ft_errno = errno;
+    errno = 4242;
+    r.libc_result = read(libc_fd, libc_buf, count);
+    r.libc_errno = errno;
+
+    fail = display_analyze_results(r, "read");
+    if ((r.ft_result > 0) && (r.libc_result > 0)) {
+        fail |= run_memcmp(ft_buf, libc_buf, count);
+    }
+    print_result(fail);
+
+    return (fail);
+}
+
+int test_read_fds(int ft_fd, int libc_fd) {
+    char ft_buf[LEN_BUF];
+    char libc_buf[LEN_BUF];
+
+    bzero(ft_buf, LEN_BUF);
+    bzero(libc_buf, LEN_BUF);
+
+    return (test_read_core(ft_fd, libc_fd, ft_buf, libc_buf, LEN_BUF));
+}
+
+int test_read_file(const char *title, const char *path) {
+    int fail;
+    t_pairfd fd;
+
+    print_title_test(title);
+
+    fail = open_pairfd(path, O_RDONLY, &fd);
+    if (fail) {
+        return (0);
+    }
+    fail = test_read_fds(fd.ft, fd.libc);
+    close_pairfd(fd);
+
+    return (fail);
+}
+
+int test_read(const char *title, int fd) {
+    int fail;
+
+    print_title_test(title);
+    fail = test_read_fds(fd, fd);
+
+    return (fail);
+}
+
+int test_read_file_tmp(const char *title) {
+    int fail;
+    t_pairfd fd;
+    char path[] = "/tmp/libasm_ft_XXXXXX";
+    char txt[] = "A test in a file for libasm of school 42!";
+    ssize_t len;
+
+    print_title_test(title);
+    fd.ft = run_mkstemp(path);
+    if (fd.ft == -1) {
+        return (0);
+    }
+    len = write(fd.ft, txt, sizeof(txt));
+    close(fd.ft);
+    if (len == -1) {
+        printf("write in file %s failed ", path);
+        print_skip();
+
+        unlink(path);
+        return (0);
+    }
+
+    fail = open_pairfd(path, O_RDONLY, &fd);
+    if (fail) {
+        unlink(path);
+        return (0);
+    }
+
+    fail = test_read_fds(fd.ft, fd.libc);
+    close_pairfd(fd);
+    unlink(path);
+
+    return (fail);
+}
+
+int tests_read(void) {
+    int fail;
+
+    print_title_tests("Tests ft_read");
+    fail = test_read("Invalid fd, error EBADF", -1);
+    fail += test_read_file("Directory, error EISDIR", ".");
+    fail += test_read_file("/dev/zero", "/dev/zero");
+    fail += test_read_file("/dev/null", "/dev/null");
+    fail += test_read_file_tmp("Read a file");
+
+    return (fail);
+}
+
 int main(void) {
     t_strings *strs_test;
     int fail;
@@ -505,6 +663,7 @@ int main(void) {
     fail += tests_strcpy(strs_test);
     fail += tests_strcmp(strs_test);
     fail += tests_write(strs_test);
+    fail += tests_read();
 
     printf("\n%sTests failed :%s %i\n", YELLOW, NC, fail);
     free(strs_test);
