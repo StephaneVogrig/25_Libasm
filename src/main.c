@@ -6,7 +6,7 @@
 /*   By: svogrig < svogrig@studebt.42.fr>           +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/10/25 19:03:14 by svogrig           #+#    #+#             */
-/*   Updated: 2026/11/02 22:53:46 by svogrig          ###   ########.fr       */
+/*   Updated: 2026/11/03 04:41:17 by svogrig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,9 +28,31 @@
 #define PIPE_RD 0
 #define PIPE_WR 1
 
-#define LEN_BUF 10
+#define SUCCESS 0
+#define FAILURE 1
+
+#define LEN_BUF 100
 
 #define LEN_VERYLONG   1000000
+
+typedef enum e_buf {
+    BUF_OK,
+    BUF_NULL,
+    BUF_BAD
+} t_buf;
+
+typedef enum e_source_type {
+    SRC_INVALID,
+    SRC_CLOSED,
+    SRC_DIR,
+    SRC_DEV_NULL,
+    SRC_DEV_ZERO,
+    SRC_FILE,
+    SRC_FILE_WRONLY,
+    SRC_PIPE_DATA,
+    SRC_PIPE_EMPTY,
+    SRC_PIPE_WR_CLOSED
+} t_srctype;
 
 typedef struct s_strings{
     char empty[1];
@@ -44,12 +66,19 @@ typedef struct s_results {
     int ft_errno;
     ssize_t libc_result;
     int libc_errno;
-} t_results_2;
+} t_results;
 
 typedef struct s_pair_fd {
     int ft;
     int libc;
+    int closed;
 } t_pairfd;
+
+typedef struct s_source {
+    t_pairfd fd;
+    t_pairfd pipe;
+    char     path[32];
+} t_source;
 
 t_strings *init_strings(void) {
     t_strings *s;
@@ -177,7 +206,7 @@ int compare_read_out(int fd1, int fd2, size_t count) {
     return (fail);
 }
 
-int display_analyze_results(t_results_2 r, const char *fct) {
+int display_analyze_results(t_results r, const char *fct) {
     printf("ft_%s = %-10zd, errno %-4i | %s = %-10zd, errno %-4i ", fct, r.ft_result, r.ft_errno, fct, r.libc_result, r.libc_errno);
     return ((r.ft_result != r.libc_result) || (r.ft_errno != r.libc_errno));
 }
@@ -207,19 +236,28 @@ int run_mkstemp(char *path){
 int open_pairfd(const char *path, int flags, t_pairfd *fd) {
     fd->ft = run_open(path, flags);
     if (fd->ft == -1) {
-        return (1);
+        return (FAILURE);
     }
     fd->libc = run_open(path, flags);
     if (fd->libc == -1) {
         close(fd->ft);
-        return (1);
+        fd->ft = -1;
+        return (FAILURE);
     }
-    return (0);
+    return (SUCCESS);
 }
 
-void close_pairfd(t_pairfd fd) {
-    close(fd.ft);
-    close(fd.libc);
+void close_pairfd(t_pairfd *fd) {
+    if (fd->closed){
+        return;
+    }
+    if (fd->ft >= 0) {
+        close(fd->ft);
+    }
+    if (fd->libc >= 0) {
+        close(fd->libc);
+    }
+    fd->closed = 1;
 }
 
 int test_strlen(const char *title, const char *string) {
@@ -281,7 +319,7 @@ int test_strcmp(const char *title, const char *s1, const char *s2) {
 }
 
 int test_write_results(int fd_ft, int fd_libc, const void *buf, size_t count) {
-    t_results_2 r;
+    t_results r;
     int fail;
 
     errno = 4242;
@@ -543,9 +581,10 @@ int tests_write(t_strings *s) {
     return (fail);
 }
 
-int test_read_core(int ft_fd, int libc_fd, void *ft_buf, void *libc_buf, size_t count) {
+/* return 1 if test failed, 0 if success */
+int test_read_core(int ft_fd, int libc_fd, void *ft_buf, void *libc_buf, size_t count, size_t size_buf) {
     int fail;
-    t_results_2 r;
+    t_results r;
 
     errno = 4242;
     r.ft_result = ft_read(ft_fd, ft_buf, count);
@@ -555,93 +594,204 @@ int test_read_core(int ft_fd, int libc_fd, void *ft_buf, void *libc_buf, size_t 
     r.libc_errno = errno;
 
     fail = display_analyze_results(r, "read");
-    if ((r.ft_result > 0) && (r.libc_result > 0)) {
-        fail |= run_memcmp(ft_buf, libc_buf, count);
+    if (size_buf) {
+        fail |= run_memcmp(ft_buf, libc_buf, size_buf);
     }
     print_result(fail);
 
     return (fail);
 }
+int fill_pipes(t_pairfd fds) {
+    ssize_t len1;
+    ssize_t len2;
+    char txt[] = "A test in a file for libasm of school 42!";
 
-int test_read_fds(int ft_fd, int libc_fd) {
-    char ft_buf[LEN_BUF];
-    char libc_buf[LEN_BUF];
-
-    bzero(ft_buf, LEN_BUF);
-    bzero(libc_buf, LEN_BUF);
-
-    return (test_read_core(ft_fd, libc_fd, ft_buf, libc_buf, LEN_BUF));
-}
-
-int test_read_file(const char *title, const char *path) {
-    int fail;
-    t_pairfd fd;
-
-    print_title_test(title);
-
-    fail = open_pairfd(path, O_RDONLY, &fd);
-    if (fail) {
-        return (0);
+    len1 = write(fds.ft, txt, sizeof(txt));
+    len2 = write(fds.libc, txt, sizeof(txt));
+    if ((len1 == -1) || (len2 == -1)) {
+        printf("%s", "write in pipe failed ");
+        print_skip();
+        return (FAILURE);
     }
-    fail = test_read_fds(fd.ft, fd.libc);
-    close_pairfd(fd);
-
-    return (fail);
+    return (SUCCESS);
 }
 
-int test_read(const char *title, int fd) {
-    int fail;
-
-    print_title_test(title);
-    fail = test_read_fds(fd, fd);
-
-    return (fail);
-}
-
-int test_read_file_tmp(const char *title) {
-    int fail;
-    t_pairfd fd;
+int open_tempfile(t_pairfd *pairfd, char *mem_path, int flags) {
     char path[] = "/tmp/libasm_ft_XXXXXX";
     char txt[] = "A test in a file for libasm of school 42!";
+    int fd;
     ssize_t len;
 
-    print_title_test(title);
-    fd.ft = run_mkstemp(path);
-    if (fd.ft == -1) {
-        return (0);
+    fd = run_mkstemp(path);
+    if (fd == -1) {
+        return (FAILURE);
     }
-    len = write(fd.ft, txt, sizeof(txt));
-    close(fd.ft);
+
+    len = write(fd, txt, sizeof(txt));
+    close(fd);
     if (len == -1) {
         printf("write in file %s failed ", path);
         print_skip();
 
         unlink(path);
-        return (0);
+        return (FAILURE);
     }
-
-    fail = open_pairfd(path, O_RDONLY, &fd);
-    if (fail) {
+    if (open_pairfd(path, flags, pairfd) == FAILURE) {
         unlink(path);
-        return (0);
+        return (FAILURE);
+    }
+    strcpy(mem_path, path);
+    return (SUCCESS);
+}
+
+int open_pipe(t_pairfd *fds_read, t_pairfd *fds_write) {
+    int fd_ft[2];
+    int fd_libc[2];
+
+    if (!create_pipe(fd_ft)) {
+        return (FAILURE);
+    }
+    if (!create_pipe(fd_libc)) {
+        close_fds(fd_ft);
+        return (FAILURE);
+    }
+    fds_read->ft = fd_ft[0];
+    fds_read->libc = fd_libc[0];
+    fds_write->ft = fd_ft[1];
+    fds_write->libc = fd_libc[1];
+    return (SUCCESS);
+}
+
+int source_open(t_srctype src_type, t_source *s) {
+    switch (src_type) {
+        case SRC_INVALID:
+            s->fd.ft = -1;
+            s->fd.libc = -1;
+            break;
+        case SRC_DIR:
+            return (open_pairfd(".", O_RDONLY, &s->fd));
+        case SRC_CLOSED:
+            if (open_pairfd("/dev/null", O_RDONLY, &s->fd) == FAILURE) {
+                return (FAILURE);
+            }
+            close_pairfd(&s->fd);
+            break;
+        case SRC_DEV_NULL:
+            return (open_pairfd("/dev/null", O_RDONLY, &s->fd));
+        case SRC_DEV_ZERO:
+            return (open_pairfd("/dev/zero", O_RDONLY, &s->fd));
+        case SRC_FILE:
+            return (open_tempfile(&s->fd, s->path, O_RDONLY));
+        case SRC_FILE_WRONLY:
+            return (open_tempfile(&s->fd, s->path, O_WRONLY));
+        case SRC_PIPE_DATA:
+            if (open_pipe(&s->fd, &s->pipe) == FAILURE) {
+                return (FAILURE);
+            }
+            if (fill_pipes(s->pipe) == FAILURE) {
+                close_pairfd(&s->fd);
+                close_pairfd(&s->pipe);
+                return (FAILURE);
+            }
+            break;
+        case SRC_PIPE_EMPTY:
+            return (open_pipe(&s->fd, &s->pipe));
+        case SRC_PIPE_WR_CLOSED:
+            if (open_pipe(&s->fd, &s->pipe) == FAILURE) {
+                return (FAILURE);
+            }
+            close_pairfd(&s->pipe);
+            break;
+        default:
+            print_failed("%s", "No source type selected ");
+            return (FAILURE);
+
+    }
+    return (SUCCESS);
+}
+
+void source_close(t_source *s) {
+    close_pairfd(&s->fd);
+    close_pairfd(&s->pipe);
+    if (s->path[0] != '\0') {
+        unlink(s->path);
+    }
+}
+
+void source_init(t_source *s) {
+    bzero(s, sizeof(*s));
+    s->fd.ft = -1;
+    s->fd.libc = -1;
+    s->pipe.ft = -1;
+    s->pipe.libc = -1;
+}
+
+/* return 1 if test failed, 0 if success or skip */
+int test_read(const char *title, t_srctype src_type, t_buf buf, size_t count) {
+    int fail;
+    char buf1[LEN_BUF];
+    char buf2[LEN_BUF];
+    char *ft_buf;
+    char *libc_buf;
+    t_source s;
+    size_t size_buf;
+
+    print_title_test(title);
+
+    ft_buf   = NULL;
+    libc_buf = NULL;
+    size_buf = 0;
+    switch(buf) {
+        case BUF_OK:
+            ft_buf   = buf1;
+            libc_buf = buf2;
+            size_buf = LEN_BUF;
+            break;
+        case BUF_NULL:
+            break;
+        case BUF_BAD:
+            ft_buf   = (void *)1;
+            libc_buf = (void *)1;
+            break;
+        default:
+            print_failed("%s", "No buffer selected ");
+            return (0);
     }
 
-    fail = test_read_fds(fd.ft, fd.libc);
-    close_pairfd(fd);
-    unlink(path);
+    source_init(&s);
+    if (source_open(src_type, &s) == FAILURE) {
+        return (0);
+    }
+    memset(buf1, 'X', LEN_BUF);
+    memset(buf2, 'X', LEN_BUF);
 
+    fail = test_read_core(s.fd.ft, s.fd.libc, ft_buf, libc_buf, count, size_buf);
+
+    source_close(&s);
     return (fail);
 }
 
+/* return the number of failed test */
 int tests_read(void) {
     int fail;
 
     print_title_tests("Tests ft_read");
-    fail = test_read("Invalid fd, error EBADF", -1);
-    fail += test_read_file("Directory, error EISDIR", ".");
-    fail += test_read_file("/dev/zero", "/dev/zero");
-    fail += test_read_file("/dev/null", "/dev/null");
-    fail += test_read_file_tmp("Read a file");
+    fail =  test_read("Invalid fd, EBADF",      SRC_INVALID,        BUF_OK,   5);
+    fail += test_read("Directory, EISDIR",      SRC_DIR,            BUF_OK,   5);
+    fail += test_read("Buffer NULL, EFAULT",    SRC_DEV_ZERO,       BUF_NULL, 5);
+    fail += test_read("Buffer bad ptr, EFAULT", SRC_DEV_ZERO,       BUF_BAD,  5);
+    fail += test_read("Partial /dev/zero",      SRC_DEV_ZERO,       BUF_OK,   5);
+    fail += test_read("Huge count, EFAULT",     SRC_DEV_ZERO,       BUF_NULL, (size_t)1 << 32);
+    fail += test_read("EOF",                    SRC_DEV_NULL,       BUF_OK,   5);
+    fail += test_read("File closed, EBADF",     SRC_CLOSED,         BUF_OK,   5);
+    fail += test_read("Regular file partial",   SRC_FILE,           BUF_OK,   5);
+    fail += test_read("Regular file",           SRC_FILE,           BUF_OK,   LEN_BUF);
+    fail += test_read("Count 0",                SRC_FILE,           BUF_OK,   0);
+    fail += test_read("File wronly, EBADF",     SRC_FILE_WRONLY,    BUF_OK,   5);
+    fail += test_read("Regular pipe partial",   SRC_PIPE_DATA,      BUF_OK,   5);
+    fail += test_read("Regular pipe",           SRC_PIPE_DATA,      BUF_OK,   LEN_BUF);
+    fail += test_read("Empty pipe, EAGAIN",     SRC_PIPE_EMPTY,     BUF_OK,   5);
+    fail += test_read("Pipe wr closed, EOF",    SRC_PIPE_WR_CLOSED, BUF_OK,   5);
 
     return (fail);
 }
