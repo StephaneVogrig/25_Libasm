@@ -6,7 +6,7 @@
 /*   By: svogrig < svogrig@studebt.42.fr>           +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/10/25 19:03:14 by svogrig           #+#    #+#             */
-/*   Updated: 2026/11/03 04:41:17 by svogrig          ###   ########.fr       */
+/*   Updated: 2026/11/04 12:21:35 by svogrig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -53,6 +53,11 @@ typedef enum e_source_type {
     SRC_PIPE_EMPTY,
     SRC_PIPE_WR_CLOSED
 } t_srctype;
+
+typedef enum e_alloc {
+    ALLOC_OK,
+    ALLOC_FAIL
+} t_alloc;
 
 typedef struct s_strings{
     char empty[1];
@@ -796,6 +801,53 @@ int tests_read(void) {
     return (fail);
 }
 
+int test_strdup(const char *title, const char *s) {
+    int fail;
+    char *ft;
+    char *libc;
+    size_t len;
+    int ft_errno;
+    int libc_errno;
+
+    print_title_test(title);
+
+    len = strlen(s);
+    // if (alloc = ALLOC_FAIL) {
+
+    // }
+    errno = 4242;
+    ft = ft_strdup(s);
+    ft_errno = errno;
+    errno = 4242;
+    libc = strdup(s);
+    libc_errno = errno;
+
+    fail = (ft_errno != libc_errno) || (ft == s);
+    if ((ft == NULL) || (libc == NULL)) {
+        fail |= (ft != libc);
+    } else {
+        fail |= (memcmp(ft, libc, len + 1) != 0);
+    }
+    // if (alloc = ALLOC_FAIL) {
+
+    // }
+    free(ft);
+    free(libc);
+    print_result(fail);
+    return (fail);
+}
+
+int tests_strdup(t_strings *s) {
+    int fail;
+
+    print_title_tests("Tests ft_strdup");
+    fail = test_strdup("Empty string", s->empty);
+    fail += test_strdup("One char", s->onechar);
+    fail += test_strdup("All char", s->allchar);
+    fail += test_strdup("Very long string", s->verylong);
+    return (fail);
+}
+
 int main(void) {
     t_strings *strs_test;
     int fail;
@@ -814,6 +866,7 @@ int main(void) {
     fail += tests_strcmp(strs_test);
     fail += tests_write(strs_test);
     fail += tests_read();
+    fail += tests_strdup(strs_test);
 
     printf("\n%sTests failed :%s %i\n", YELLOW, NC, fail);
     free(strs_test);

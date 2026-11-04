@@ -13,12 +13,19 @@ Ce projet post tronc commun de l'école 42 a pour but de découvrir la programma
 Il existe deux principales syntaxes pour l'écriture assembleur : Intel et AT&T.
 Pour ce projet, il est demandé d'utiliser la syntaxe Intel avec le compilateur NASM.
 
-[Intel and AT&T Syntax](https://imada.sdu.dk/u/kslarsen/dm546/Material/IntelnATT.htm)
-[OSDev Wiki - Assembly](https://wiki.osdev.org/Assembly)
+* [Intel and AT&T Syntax](https://imada.sdu.dk/u/kslarsen/dm546/Material/IntelnATT.htm)
+* [OSDev Wiki - Assembly](https://wiki.osdev.org/Assembly)
 
 ## Compilation
-Pour compiler un fichier source en asm :
+Il est demané d'utiliser [NASM](https://www.nasm.us/doc/) pour compiler le projet.
+
+Format executable :
+    * [elf](https://en.wikipedia.org/wiki/Executable_and_Linkable_Format) : Exexcutable and Linkable Format, utilisé sur la majorité des systeme Unix, dont Linux.
+    * [Mach-O](https://en.wikipedia.org/wiki/Mach-O) : Mach object, utilisé par macOS.
+    * [PE](https://en.wikipedia.org/wiki/Portable_Executable) : Portable Executable utilsé pa Windows
+
 ```bash
+# Sous Linux
 nasm -f elf64 source.s -o code_objet.o
 ```
 Pour étudier le résultat de la compilation d'un programme en C :
@@ -130,6 +137,12 @@ En suivant la convention d'appel System V :
     dans la destination (`movzx eax, al` ≠ `xor eax, eax` + `mov al, al`).
     Dans ce cas, utiliser `and eax, 0xFF`, `and` modifie les flags.
 
+* [call]()
+
+    * [call en dehors de librairie](https://www.nasm.us/doc/nasm11.html#section-11.2.5)
+    ```bash
+    call function WRT ..plt
+    ```
 
 ## Accès mémoire
 Pour obtenir le contenu en mémoire, on utilise la notation `[...]`.
