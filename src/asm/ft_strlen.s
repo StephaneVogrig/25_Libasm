@@ -1,3 +1,12 @@
+; size_t strlen(const char *s);
+;
+; arguments:
+; rdi = s
+;
+; return:
+; rax = length of s, '\0' excluded
+; -----------------------
+
 section .text
     global  ft_strlen
 

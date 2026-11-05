@@ -1,3 +1,13 @@
+; int ft_strcmp(const char *s1, const char *s2);
+;
+; arguments:
+; rdi = dest
+; rsi = src
+;
+; return:
+; rax = dest[i] - src[i] when they differ, or zero if src and dest are equal
+; -----------------------
+
 section .text
     global  ft_strcmp
 

@@ -1,13 +1,13 @@
-; char *strdup(const char *s);
+; char *ft_strdup(const char *s);
 ;
 ; arguments:
 ; rdi = s
 ;
 ; return:
-; rax = NULL or ptr to copy of s allowed by malloc
+; rax = pointer to a malloc'd copy of s, or NULL on failure
 ;
-; Note :
-; if malloc failed errno is set to ENOMEM (12) by malloc
+; Note:
+; on error, errno is set to ENOMEM by malloc
 ; -----------------------
 
 section .text
@@ -17,14 +17,14 @@ section .text
     extern  malloc
 
 ft_strdup:
-    push    rbp
-    mov     rbp, rdi                    ; rbp = *s
+    push    rbp                         ; save rbp + align stack to 16 bytes
+    mov     rbp, rdi                    ; keep s across the call
 
     call    ft_strlen
     inc     rax                         ; len++ to add '\0'
 
     mov     rdi, rax
-    call    malloc wrt ..plt            ; rax = *dup
+    call    malloc wrt ..plt            ; rax = dup or NULL
     test    rax, rax
     jz      .finish
 

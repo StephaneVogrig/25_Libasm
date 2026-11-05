@@ -7,9 +7,9 @@
 ; return:
 ; rax = NULL or ptr allowed by malloc
 ;
-; Note :
-; if nmemb * size overflow, errno is set to ENOMEM (12), return NULL (0)
-; if malloc failed errno is set by malloc, return NULL (0)
+; Note:
+; if nmemb * size overflow, errno is set to ENOMEM, return NULL (0)
+; on error, errno is set by malloc, return NULL (0)
 ; -----------------------
 
 %define ENOMEM 12
@@ -20,24 +20,23 @@ section .text
     extern  __errno_location
 
 ft_calloc:
-    push    rbx
+    push    rbx                         ; save rbx + align stack to 16 bytes
 
-    mov     rax, rdi
-    mul     rsi                         ; RDX:RAX = nmemb * size
-    jo      .overflow                   ; if overflow
+    mov     rax, rdi                    ; rax = nmemb
+    mul     rsi                         ; rdx:rax = nmemb * size
+    jo      .overflow                   ; OF set if rdx != 0 (nmemb * size overflows 64 bits)
 
-    mov     rbx, rax
+    mov     rbx, rax                    ; keep malloc size across the call
     mov     rdi, rax
     call    malloc wrt ..plt
     test    rax, rax
-    jz      .finish                     ; if malloc = NULL
+    jz      .finish                     ; malloc failed, return NULL
     test    rbx, rbx
-    jz      .finish
+    jz      .finish                     ; size == 0
 
 .loop:
-    sub     rbx, 1
-    mov     [rax + rbx], byte 0
-    test    rbx, rbx
+    sub     rbx, 1                      ; rbx-- (ZF = 1 when rbx == 0)
+    mov     byte [rax + rbx], 0
     jnz     .loop
 
 .finish:
@@ -46,6 +45,6 @@ ft_calloc:
 
 .overflow:
     call    __errno_location wrt ..plt  ; get the errno address
-    mov     [rax], dword ENOMEM               ; save the errno value
+    mov     [rax], dword ENOMEM         ; save the errno value
     xor     eax, eax                    ; return NULL (0)
     jmp     .finish
