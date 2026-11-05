@@ -3,10 +3,10 @@
 #                                                         :::      ::::::::    #
 #    Makefile                                           :+:      :+:    :+:    #
 #                                                     +:+ +:+         +:+      #
-#    By: svogrig < svogrig@studebt.42.fr>           +#+  +:+       +#+         #
+#    By: svogrig <svogrig@student.42.fr>            +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2026/10/24 11:46:07 by svogrig           #+#    #+#              #
-#    Updated: 2026/10/29 01:44:27 by svogrig          ###   ########.fr        #
+#    Updated: 2026/11/05 04:51:34 by svogrig          ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -16,6 +16,7 @@ NC				:=	\033[0m
 
 LIB_NAME 		:=	libasm.a
 TEST_NAME		:=	test_libasm
+TEST_DBG_NAME	:=	test_dbg
 
 # includes --------------------------------------------------------------------#
 
@@ -65,6 +66,7 @@ clean:
 fclean: clean
 	@rm -f $(LIB_NAME) && printf "Cleaned : $(LIB_NAME)\n"
 	@rm -f $(TEST_NAME) && printf "Cleaned : $(TEST_NAME)\n"
+	@rm -f $(TEST_DBG_NAME) && printf "Cleaned : $(TEST_DBG_NAME)\n"
 
 re: fclean all
 
@@ -74,6 +76,8 @@ lib: $(LIB_NAME)
 
 run: test
 	@./$(TEST_NAME)
+
+debug: $(TEST_DBG_NAME)
 
 -include $(OBJ_C:.o=.d)
 
@@ -103,6 +107,11 @@ $(LIB_NAME): $(OBJ_ASM)
 
 $(TEST_NAME): $(LIB_NAME) $(OBJ_C)
 	@$(CC) $(CFLAGS) $(OBJ_C) $(LIB_NAME) -o $@ && printf "$(BOLD_GREEN)Created   : $@$(NC)\n"
+
+$(TEST_DBG_NAME): $(LIB_NAME) $(OBJ_C)
+	@$(CC) $(CFLAGS) -g $(OBJ_C) $(LIB_NAME) -o $@ && printf "$(BOLD_GREEN)Created   : $@$(NC)\n"
+
+
 
 #------------------------------------------------------------------------------#
 # specifications                                                               #
