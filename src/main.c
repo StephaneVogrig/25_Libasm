@@ -6,7 +6,7 @@
 /*   By: svogrig <svogrig@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/10/25 19:03:14 by svogrig           #+#    #+#             */
-/*   Updated: 2026/11/05 04:49:46 by svogrig          ###   ########.fr       */
+/*   Updated: 2026/11/05 12:10:55 by svogrig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -34,8 +34,11 @@
 #define FAILURE 1
 
 #define LEN_BUF 100
+#define TITLE_LEN 40
 
 #define LEN_VERYLONG   1000000
+
+#define MAX_SIZE 0xFFFFFFFFFFFFFFFF
 
 typedef enum e_buf {
     BUF_OK,
@@ -866,7 +869,11 @@ int test_calloc(size_t nmemb, size_t size, int alloc) {
     int libc_errno;
     struct rlimit lim_old;
     struct rlimit lim;
+    char title[TITLE_LEN];
 
+    bzero(title, TITLE_LEN);
+    snprintf(title, TITLE_LEN, "calloc(%zu, %zu) alloc %s", nmemb, size, alloc ? "fail" : "ok");
+    print_title_test(title);
     if (alloc == ALLOC_FAIL) {
         getrlimit(RLIMIT_AS, &lim_old);
         lim = lim_old;
@@ -899,7 +906,15 @@ int test_calloc(size_t nmemb, size_t size, int alloc) {
 int tests_calloc(void) {
     int fail;
 
-    fail = test_calloc(1, 1, ALLOC_OK);
+    print_title_tests("Tests ft_calloc");
+    fail = test_calloc(1, 10, ALLOC_OK);
+    fail = test_calloc(8, 10, ALLOC_OK);
+    fail = test_calloc(8, 0, ALLOC_OK);
+    fail = test_calloc(0, 10, ALLOC_OK);
+    fail = test_calloc(0, 10, ALLOC_OK);
+    fail = test_calloc(MAX_SIZE, 2, ALLOC_OK);
+    fail = test_calloc(1000, 1000, ALLOC_FAIL);
+
     return (fail);
 }
 

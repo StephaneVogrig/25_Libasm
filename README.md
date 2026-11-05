@@ -1,6 +1,7 @@
 # Libasm
 
-Ce projet post tronc commun de l'école 42 a pour but de découvrir la programmation bas niveau en assembleur. Il consiste en la réalisation d'une librairie de commandes de base utilisables ensuite par un programme en C :
+Ce projet post tronc commun de l'école 42 a pour but de découvrir la programmation bas niveau en assembleur. Il consiste en la réalisation d'une librairie de commandes de base utilisables ensuite par un programme en C.  
+Les commandes de la partie mandatory :
 - ft_strlen
 - ft_strcpy
 - ft_strcmp
@@ -9,9 +10,11 @@ Ce projet post tronc commun de l'école 42 a pour but de découvrir la programma
 - ft_strdup
 - ft_calloc
 
+Les commandes de lapartie bonus n'ont pas ete traite.
+
 ## Syntaxe
 Il existe deux principales syntaxes pour l'écriture assembleur : Intel et AT&T.
-Pour ce projet, il est demandé d'utiliser la syntaxe Intel avec le compilateur NASM.
+Pour ce projet, il est demandé d'utiliser la syntaxe Intel.
 
 * [Intel and AT&T Syntax](https://imada.sdu.dk/u/kslarsen/dm546/Material/IntelnATT.htm)
 * [OSDev Wiki - Assembly](https://wiki.osdev.org/Assembly)
@@ -90,7 +93,7 @@ En suivant la convention d'appel System V :
 
 * Les arguments de la fonction sont passés dans l'ordre dans les registres :
 `rdi`, `rsi`, `rdx`, `rcx`, `r8`, `r9` et sur la stack pour les suivants.
-
+ R[%rdx]:R[%rax] 
 * Le retour de la fonction est écrit dans le registre `rax`.
 
 * La fonction doit préserver :
@@ -143,6 +146,11 @@ En suivant la convention d'appel System V :
     ```bash
     call function WRT ..plt
     ```
+* [mul](https://www.reverseengineering.app/en/assembly/imul-mul)
+    ```nasm
+    mul rebx ; rdx:rax = rax * rdx
+    ```
+    L'instruction 'mul' multipli rax avec l'operande. le resultat est stocke dans les registre rdx et rax (note rdx:rax), permettant de recevoir l'overflow. rdx contient la partie haute (overflow) et rax la partie bassse du resultat. Le flac OF est mis a 1 si rdx n'est pas nul, permettant avec `[jo](https://asm-editor.specy.app/documentation/x86/instruction/jo)` (jump if OF = 1) ou [jno](https://asm-editor.specy.app/documentation/x86/instruction/jno) (jump if OF = 0) de gerer l'overflow.
 
 ## Accès mémoire
 Pour obtenir le contenu en mémoire, on utilise la notation `[...]`.
@@ -202,10 +210,11 @@ strace ./test
 * Verifier les fuites mémoires :
 ```bash
 valgrind --leak-check=full ./test
-```
+```https://www.agner.org/optimize/optimizing_assembly.pdf
 
 
 
 ## Documentation
 [x86 Assembly/Interfacing with Linux](https://en.wikibooks.org/wiki/X86_Assembly/Interfacing_with_Linux)<br>
 [Optimizing subroutines in assembly language](https://www.agner.org/optimize/optimizing_assembly.pdf)<br>
+[CS107 x86-64 Reference sheet - Standford University](https://web.stanford.edu/class/cs107/resources/x86-64-reference.pdf)
