@@ -6,7 +6,7 @@
 #    By: svogrig <svogrig@student.42.fr>            +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2026/10/24 11:46:07 by svogrig           #+#    #+#              #
-#    Updated: 2026/11/05 04:51:34 by svogrig          ###   ########.fr        #
+#    Updated: 2026/11/05 13:59:47 by svogrig          ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -27,6 +27,8 @@ DEP_FLAGS		:=	-MMD -MP
 # sources ---------------------------------------------------------------------#
 
 DIR_SRC			:=	src
+DIR_SRC_ASM		:=  asm
+DIR_SRC_TEST	:=  test
 SRC_ASM			:=	ft_strlen.s \
 					ft_strcpy.s \
 					ft_strcmp.s \
@@ -34,14 +36,27 @@ SRC_ASM			:=	ft_strlen.s \
 					ft_read.s \
 					ft_strdup.s \
 					ft_calloc.s
+					
+SRC_ASM			:=  $(addprefix $(DIR_SRC_ASM)/, $(SRC_ASM))
 
-SRC_C			:=	main.c
+SRC_TEST		:=	main.c \
+					display.c \
+					utils.c \
+					tests_ft_strlen.c \
+					tests_ft_strcpy.c \
+					tests_ft_strcmp.c \
+					tests_ft_write.c \
+					tests_ft_read.c \
+					tests_ft_strdup.c \
+					tests_ft_calloc.c
+
+SRC_TEST		:=  $(addprefix $(DIR_SRC_TEST)/, $(SRC_TEST))
 
 # objects ---------------------------------------------------------------------#
 
 OBJ_DIR			:=	.build
 OBJ_ASM			:=	$(addprefix $(OBJ_DIR)/, $(SRC_ASM:.s=.o))
-OBJ_C			:=	$(addprefix $(OBJ_DIR)/, $(SRC_C:.c=.o))
+OBJ_TEST		:=	$(addprefix $(OBJ_DIR)/, $(SRC_TEST:.c=.o))
 
 # compilation -----------------------------------------------------------------#
 
@@ -79,7 +94,7 @@ run: test
 
 debug: $(TEST_DBG_NAME)
 
--include $(OBJ_C:.o=.d)
+-include $(OBJ_TEST:.o=.d)
 
 #------------------------------------------------------------------------------#
 # compilation                                                                  #
@@ -105,13 +120,11 @@ $(LIB_NAME): $(OBJ_ASM)
 	@$(AR) $(ARFLAGS) $(LIB_NAME) $(OBJ_ASM)
 	@printf "$(BOLD_GREEN)Created   : %s$(NC)\n" $@
 
-$(TEST_NAME): $(LIB_NAME) $(OBJ_C)
-	@$(CC) $(CFLAGS) $(OBJ_C) $(LIB_NAME) -o $@ && printf "$(BOLD_GREEN)Created   : $@$(NC)\n"
+$(TEST_NAME): $(LIB_NAME) $(OBJ_TEST)
+	@$(CC) $(CFLAGS) $(OBJ_TEST) $(LIB_NAME) -o $@ && printf "$(BOLD_GREEN)Created   : $@$(NC)\n"
 
-$(TEST_DBG_NAME): $(LIB_NAME) $(OBJ_C)
-	@$(CC) $(CFLAGS) -g $(OBJ_C) $(LIB_NAME) -o $@ && printf "$(BOLD_GREEN)Created   : $@$(NC)\n"
-
-
+$(TEST_DBG_NAME): $(LIB_NAME) $(OBJ_TEST)
+	@$(CC) $(CFLAGS) -g $(OBJ_TEST) $(LIB_NAME) -o $@ && printf "$(BOLD_GREEN)Created   : $@$(NC)\n"
 
 #------------------------------------------------------------------------------#
 # specifications                                                               #
