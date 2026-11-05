@@ -7,7 +7,7 @@ ft_strcmp:
     movzx   eax, byte [rdi + rcx]
     movzx   edx, byte [rsi + rcx]
     cmp     al, dl
-    jne      .return
+    jne     .return
     inc     rcx
     test    al, al
     jne     .loop

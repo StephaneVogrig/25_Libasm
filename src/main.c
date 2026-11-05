@@ -6,7 +6,7 @@
 /*   By: svogrig <svogrig@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/10/25 19:03:14 by svogrig           #+#    #+#             */
-/*   Updated: 2026/11/05 03:40:35 by svogrig          ###   ########.fr       */
+/*   Updated: 2026/11/05 04:49:46 by svogrig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -858,6 +858,51 @@ int tests_strdup(t_strings *s) {
     return (fail);
 }
 
+int test_calloc(size_t nmemb, size_t size, int alloc) {
+    int fail;
+    char *ft;
+    char *libc;
+    int ft_errno;
+    int libc_errno;
+    struct rlimit lim_old;
+    struct rlimit lim;
+
+    if (alloc == ALLOC_FAIL) {
+        getrlimit(RLIMIT_AS, &lim_old);
+        lim = lim_old;
+        lim.rlim_cur = 0;
+        setrlimit(RLIMIT_AS, &lim);
+    }
+    errno = 4242;
+    ft = ft_calloc(nmemb, size);
+    ft_errno = errno;
+    errno = 4242;
+    libc = calloc(nmemb, size);
+    libc_errno = errno;
+    if (alloc == ALLOC_FAIL) {
+        setrlimit(RLIMIT_AS, &lim_old);
+    }
+    printf("ft : str* = %-10p,  errno = %-4d | libc: str* = %-10p,  errno = %-4d ", (void *)ft, ft_errno, (void *)libc, libc_errno);
+    fail = (ft_errno != libc_errno);
+    if ((ft == NULL) || (libc == NULL)) {
+        fail |= (ft != libc);
+    } else {
+        fail |= (memcmp(ft, libc, nmemb * size) != 0);
+    }
+    free(ft);
+    free(libc);
+    print_result(fail);
+
+    return (fail);
+}
+
+int tests_calloc(void) {
+    int fail;
+
+    fail = test_calloc(1, 1, ALLOC_OK);
+    return (fail);
+}
+
 int main(void) {
     t_strings *strs_test;
     int fail;
@@ -877,6 +922,7 @@ int main(void) {
     fail += tests_write(strs_test);
     fail += tests_read();
     fail += tests_strdup(strs_test);
+    fail += tests_calloc();
 
     printf("\n%sTests failed :%s %i\n", YELLOW, NC, fail);
     free(strs_test);
