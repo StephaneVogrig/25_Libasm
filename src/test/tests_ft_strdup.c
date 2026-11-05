@@ -6,7 +6,7 @@
 /*   By: svogrig <svogrig@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/11/05 12:53:38 by svogrig           #+#    #+#             */
-/*   Updated: 2026/11/05 12:54:51 by svogrig          ###   ########.fr       */
+/*   Updated: 2026/11/05 17:38:17 by svogrig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -59,10 +59,10 @@ int tests_strdup(t_strings *s) {
     int fail;
 
     print_title_tests("Tests ft_strdup");
-    fail = test_strdup("Empty string", s->empty, ALLOC_OK);
-    fail += test_strdup("One char", s->onechar, ALLOC_OK);
-    fail += test_strdup("All char", s->allchar, ALLOC_OK);
-    fail += test_strdup("Very long string", s->verylong, ALLOC_OK);
-    fail += test_strdup("Very long string", s->verylong, ALLOC_FAIL);
+    fail = test_strdup("Empty string, alloc ok", s->empty, ALLOC_OK);
+    fail += test_strdup("One char, alloc ok", s->onechar, ALLOC_OK);
+    fail += test_strdup("All char, alloc ok", s->allchar, ALLOC_OK);
+    fail += test_strdup("Very long string, alloc ok", s->verylong, ALLOC_OK);
+    fail += test_strdup("Very long string, alloc fail", s->verylong, ALLOC_FAIL);
     return (fail);
 }

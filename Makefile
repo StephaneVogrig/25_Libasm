@@ -6,7 +6,7 @@
 #    By: svogrig <svogrig@student.42.fr>            +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2026/10/24 11:46:07 by svogrig           #+#    #+#              #
-#    Updated: 2026/11/05 13:59:47 by svogrig          ###   ########.fr        #
+#    Updated: 2026/11/05 17:42:26 by svogrig          ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -94,6 +94,9 @@ run: test
 
 debug: $(TEST_DBG_NAME)
 
+valgrind: $(TEST_NAME)
+	valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes ./$(TEST_NAME)
+
 -include $(OBJ_TEST:.o=.d)
 
 #------------------------------------------------------------------------------#
@@ -136,4 +139,6 @@ $(TEST_DBG_NAME): $(LIB_NAME) $(OBJ_TEST)
 		re \
 		lib \
 		test \
-		run
+		run \
+		debug \
+		valgrind

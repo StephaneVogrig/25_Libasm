@@ -6,7 +6,7 @@
 /*   By: svogrig <svogrig@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/10/25 19:03:14 by svogrig           #+#    #+#             */
-/*   Updated: 2026/11/05 13:58:51 by svogrig          ###   ########.fr       */
+/*   Updated: 2026/11/05 17:40:26 by svogrig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -41,7 +41,8 @@ int main(void) {
     // for no crash when SIGPIPE
     signal(SIGPIPE, SIG_IGN);
 
-    fail = tests_strlen(strs_test);
+    fail = 0;
+    fail += tests_strlen(strs_test);
     fail += tests_strcpy(strs_test);
     fail += tests_strcmp(strs_test);
     fail += tests_write(strs_test);
