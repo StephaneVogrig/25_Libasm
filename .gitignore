@@ -1,3 +1,5 @@
 .build
 libasm.a
 test_libasm
+
+rendu_*/.git*
